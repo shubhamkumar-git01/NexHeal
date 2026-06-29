@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(PATIENT)
+  phone     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  doctorProfile         DoctorProfile?
+  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
+  reviewsGiven          Review[]      @relation("PatientReviews")
+  reviewsReceived       Review[]      @relation("DoctorReviews")
+}
+
+model DoctorProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  specialization  String
+  experience      Int      // Years of experience
+  consultationFee Float
+  bio             String?
+  availableDays   String[] // E.g. ["Monday", "Wednesday"]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  patientId       String
+  doctorId        String
+  patient         User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor          User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  date            DateTime
+  status          AppointmentStatus @default(PENDING)
+  meetingLink     String?           // WebRTC/Video call room ID
+  aiPrescription  String?           // AI generated prescription
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  patientId   String
+  doctorId    String
+  patient     User     @relation("PatientReviews", fields: [patientId], references: [id])
+  doctor      User     @relation("DoctorReviews", fields: [doctorId], references: [id])
+  rating      Int      // 1 to 5
+  comment     String?
+  createdAt   DateTime @default(now())
+}
