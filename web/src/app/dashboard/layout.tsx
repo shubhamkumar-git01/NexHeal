@@ -133,11 +133,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <ThemeToggle />
             
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative outline-none">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#09090b]"></span>
-                </button>
+              <DropdownMenuTrigger className="p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors relative outline-none">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#09090b]"></span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 dark:bg-slate-900 dark:border-slate-800">
                 <DropdownMenuLabel className="font-semibold flex justify-between items-center">
