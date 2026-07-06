@@ -8,8 +8,8 @@ export default function Home() {
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-4 bg-white border-b border-slate-100">
         <div className="flex items-center space-x-2">
-          <Activity className="w-8 h-8 text-blue-600" />
-          <span className="text-2xl font-extrabold text-blue-900 tracking-tight">NexHeal</span>
+          <img src="/logo.jpg" alt="NexHeal Logo" className="h-8 w-8 rounded-md" />
+          <h1 className="text-2xl font-bold text-blue-700 tracking-tight">NexHeal</h1>
         </div>
         <div className="space-x-4">
           <Link href="/login">

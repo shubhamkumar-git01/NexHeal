@@ -41,6 +41,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-slate-200">
+          <img src="/logo.jpg" alt="NexHeal Logo" className="h-8 w-8 rounded-md mr-2" />
           <h1 className="text-2xl font-bold text-blue-700 tracking-tight">NexHeal</h1>
         </div>
         
