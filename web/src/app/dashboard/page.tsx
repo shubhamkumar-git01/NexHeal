@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, CalendarClock, TrendingUp, Activity } from "lucide-react";
 import DashboardLoading from "./loading";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
@@ -58,8 +59,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+      >
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
             <Users className="h-4 w-4 text-blue-600" />
@@ -72,7 +78,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Appointments Today</CardTitle>
             <CalendarClock className="h-4 w-4 text-blue-600" />
@@ -85,7 +91,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue (Monthly)</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
@@ -98,7 +104,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">AI Accuracy Score</CardTitle>
             <Activity className="h-4 w-4 text-blue-600" />
@@ -110,11 +116,16 @@ export default function DashboardPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
       {/* Main Content Area */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="grid gap-4 md:grid-cols-2 lg:grid-cols-7"
+      >
+        <Card className="col-span-4 hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Upcoming Appointments</CardTitle>
           </CardHeader>
@@ -131,7 +142,11 @@ export default function DashboardPage() {
                   const timeString = aptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   
                   return (
-                    <div key={i} className="flex items-center justify-between p-4 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors">
+                    <motion.div 
+                      whileHover={{ scale: 1.01 }}
+                      key={i} 
+                      className="flex items-center justify-between p-4 border border-slate-100 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium">
                           {apt.patient?.firstName?.charAt(0) || "P"}
@@ -147,7 +162,7 @@ export default function DashboardPage() {
                           {apt.status}
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })
               )}
@@ -155,31 +170,30 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
-        <Card className="col-span-3">
+        <Card className="col-span-3 hover:shadow-md transition-shadow">
           <CardHeader>
             <CardTitle>Recent Patient Alerts</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Dummy alerts for visual context as AI integration expands */}
-              <div className="flex p-4 bg-red-50 rounded-lg border border-red-100">
+              <motion.div whileHover={{ scale: 1.02 }} className="flex p-4 bg-red-50 rounded-lg border border-red-100 cursor-pointer">
                 <Activity className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-red-800">High Blood Pressure</h4>
                   <p className="text-sm text-red-600 mt-1">Patient 'Anil Verma' reported BP 150/95 via AI symptom checker.</p>
                 </div>
-              </div>
-              <div className="flex p-4 bg-amber-50 rounded-lg border border-amber-100">
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} className="flex p-4 bg-amber-50 rounded-lg border border-amber-100 cursor-pointer">
                 <Activity className="w-5 h-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-amber-800">Missed Medication</h4>
                   <p className="text-sm text-amber-600 mt-1">Sunita Devi missed her morning dosage (Diabetes Type 2).</p>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 }
