@@ -8,6 +8,7 @@ import morgan from 'morgan';
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
 import authRoutes from './routes/authRoutes';
 import aiRoutes from './routes/aiRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Socket.io Connection
 io.on('connection', (socket) => {
