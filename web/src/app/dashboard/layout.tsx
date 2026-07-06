@@ -1,5 +1,8 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,6 +14,28 @@ import {
 } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      router.push("/login");
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
+
+  if (!isMounted) return null; // Prevent hydration mismatch
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
@@ -57,7 +82,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </Link>
             </li>
             <li>
-              <button className="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors">
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
+              >
                 <LogOut className="w-5 h-5 mr-3" />
                 Logout
               </button>
@@ -80,11 +108,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             
             <div className="flex items-center space-x-3 border-l border-slate-200 pl-4">
               <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                DR
+                {user?.firstName?.charAt(0) || "D"}{user?.lastName?.charAt(0) || "R"}
               </div>
               <div className="text-sm hidden sm:block">
-                <p className="font-medium text-slate-700">Dr. Smith</p>
-                <p className="text-xs text-slate-500">Cardiologist</p>
+                <p className="font-medium text-slate-700">Dr. {user?.firstName} {user?.lastName}</p>
+                <p className="text-xs text-slate-500 capitalize">{user?.role?.toLowerCase() || "Doctor"}</p>
               </div>
             </div>
           </div>
