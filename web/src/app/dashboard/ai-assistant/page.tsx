@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, Send, User, AlertTriangle, Sparkles, Copy, RotateCcw, Trash2, ShieldAlert } from "lucide-react";
+import { Bot, Send, User, AlertTriangle, Sparkles, Copy, RotateCcw, Trash2, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface Message {
@@ -15,12 +15,19 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   isTyping?: boolean;
+  metadata?: {
+    confidenceScore?: number;
+    requiresHumanReview?: boolean;
+    timestamp?: string;
+  };
 }
 
 export default function AIAssistantPage() {
   const { user } = useAuth(false);
   const role = user?.role?.toLowerCase() || 'patient';
   const isPatient = role === 'patient';
+  const isDoctor = role === 'doctor';
+  const isAdmin = ['admin', 'super_admin', 'hospital_admin'].includes(role);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -41,7 +48,16 @@ export default function AIAssistantPage() {
     "Check Drug Interactions"
   ];
 
-  const templates = isPatient ? patientTemplates : doctorTemplates;
+  const adminTemplates = [
+    "Predict Bed Occupancy",
+    "Hospital Resource Forecast",
+    "Emergency Surge Probability",
+    "Staff Requirements Prediction"
+  ];
+
+  let templates = patientTemplates;
+  if (isDoctor) templates = doctorTemplates;
+  if (isAdmin) templates = adminTemplates;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -57,13 +73,18 @@ export default function AIAssistantPage() {
     setInputValue("");
     setIsProcessing(true);
 
-    // Add typing indicator message
     const typingId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, { id: typingId, role: "assistant", content: "", isTyping: true }]);
 
-    // Simulate network delay and streaming response
     setTimeout(() => {
-      let responseText = "I am a mocked AI assistant. In a real environment, I would securely connect to the NexHeal AI backend to provide insights on your query: " + text;
+      let responseText = "I am a mocked AI assistant running through the NexHeal AI Gateway to provide insights on your query: " + text;
+      let requiresReview = false;
+      let confidence = 0.95;
+      
+      if (text.includes("Symptom Checker") || text.includes("SOAP Note Draft")) {
+        requiresReview = true;
+        confidence = 0.75;
+      }
       
       if (text.includes("Symptom Checker")) {
         responseText = "I can help analyze your symptoms. Please list what you are experiencing. Note: I cannot diagnose conditions, but I can suggest urgency levels.";
@@ -72,7 +93,17 @@ export default function AIAssistantPage() {
       }
 
       setMessages(prev => prev.map(msg => 
-        msg.id === typingId ? { id: typingId, role: "assistant", content: responseText, isTyping: false } : msg
+        msg.id === typingId ? { 
+          id: typingId, 
+          role: "assistant", 
+          content: responseText, 
+          isTyping: false,
+          metadata: {
+            confidenceScore: confidence,
+            requiresHumanReview: requiresReview,
+            timestamp: new Date().toLocaleTimeString()
+          }
+        } : msg
       ));
       setIsProcessing(false);
     }, 1500);
@@ -96,11 +127,10 @@ export default function AIAssistantPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto">
-      {/* Safety Disclaimer Banner */}
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 flex items-start gap-3 mb-4 shrink-0">
         <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
         <p className="text-sm text-amber-800 dark:text-amber-400 font-medium">
-          This assistant provides informational support only. It is not a medical diagnosis and does not replace qualified healthcare professionals.
+          This AI provides informational support only. It is not a medical diagnosis. A qualified professional must review clinical recommendations.
         </p>
       </div>
 
@@ -109,10 +139,10 @@ export default function AIAssistantPage() {
           <div>
             <CardTitle className="flex items-center text-lg">
               <Sparkles className="w-5 h-5 mr-2 text-primary" />
-              NexHeal AI Copilot
+              NexHeal Intelligence Copilot
             </CardTitle>
             <CardDescription className="text-xs mt-1">
-              {isPatient ? "Your personal health assistant" : "Clinical intelligence assistant"}
+              {isAdmin ? "Enterprise AI Gateway" : isPatient ? "Your personal health assistant" : "Clinical intelligence assistant"}
             </CardDescription>
           </div>
           {messages.length > 0 && (
@@ -132,7 +162,7 @@ export default function AIAssistantPage() {
                 <div>
                   <h3 className="text-xl font-bold">How can I help you today?</h3>
                   <p className="text-muted-foreground text-sm mt-2 max-w-sm mx-auto">
-                    Select a quick action below or type your medical question in the chat box.
+                    Select a quick action below or type your query in the chat box.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mt-4">
@@ -186,15 +216,26 @@ export default function AIAssistantPage() {
                             </div>
                           )}
                         </div>
-                        
-                        {msg.role === 'assistant' && !msg.isTyping && (
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ opacity: 1 }}>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(msg.content)} title="Copy">
-                              <Copy className="w-3 h-3 text-muted-foreground" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={regenerateLast} title="Regenerate">
-                              <RotateCcw className="w-3 h-3 text-muted-foreground" />
-                            </Button>
+
+                        {msg.role === 'assistant' && !msg.isTyping && msg.metadata && (
+                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground ml-2 mt-1 w-full max-w-full">
+                            <span className="flex items-center gap-1 font-semibold text-emerald-600">
+                              <CheckCircle2 className="w-3 h-3" /> Confidence: {Math.round((msg.metadata.confidenceScore || 0) * 100)}%
+                            </span>
+                            {msg.metadata.requiresHumanReview && (
+                              <span className="flex items-center gap-1 font-semibold text-amber-600">
+                                <AlertTriangle className="w-3 h-3" /> Human Review Required
+                              </span>
+                            )}
+                            <span className="text-slate-400">{msg.metadata.timestamp}</span>
+                            <div className="flex gap-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" style={{ opacity: 1 }}>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(msg.content)} title="Copy">
+                                <Copy className="w-3 h-3 text-muted-foreground" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={regenerateLast} title="Regenerate">
+                                <RotateCcw className="w-3 h-3 text-muted-foreground" />
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -213,7 +254,7 @@ export default function AIAssistantPage() {
           >
             <div className="relative flex-1">
               <Input 
-                placeholder="Ask NexHeal AI..." 
+                placeholder="Ask NexHeal Intelligence..." 
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={isProcessing}

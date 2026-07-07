@@ -6,78 +6,1353 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+/// The primary role of the user in the ecosystem.
 enum Role {
-  PATIENT
+  SUPER_ADMIN
+  ZONE_ADMIN
+  HOSPITAL_ADMIN
   DOCTOR
-  ADMIN
+  PATIENT
+  VOLUNTEER
+  NGO
+  RESPONDER
 }
 
+/// Expanded status of a scheduled appointment.
 enum AppointmentStatus {
-  PENDING
+  REQUESTED
   CONFIRMED
+  CHECKED_IN
+  IN_CONSULTATION
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+/// Categories of emergency incidents for triage and dispatch.
+enum IncidentType {
+  MEDICAL
+  POLICE
+  FIRE
+  CIVIC
+  DISASTER
+  ROADSIDE
+  COMMUNITY
+}
+
+/// Status of an ongoing emergency incident.
+enum IncidentStatus {
+  CREATED
+  ACKNOWLEDGED
+  ASSIGNED
+  RESPONDER_ACCEPTED
+  EN_ROUTE
+  ARRIVED
+  IN_PROGRESS
   COMPLETED
   CANCELLED
 }
 
+/// Priority or severity level of an incident.
+enum IncidentSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+/// The status of a fleet vehicle.
+enum FleetStatus {
+  IDLE
+  EN_ROUTE
+  BUSY
+  MAINTENANCE
+}
+
+/// Categories of donations handled by the platform.
+enum DonationCategory {
+  BLOOD
+  MEDICINE
+  MEDICAL_EQUIPMENT
+  ORGAN
+  FOOD
+  FUND
+  DISASTER_RELIEF
+}
+
+/// Medical record category.
+enum RecordType {
+  GENERAL
+  PRESCRIPTION
+  LAB_REPORT
+  IMAGING
+  SURGERY
+  DISCHARGE_SUMMARY
+  VACCINATION
+}
+
+/// Types of timeline events
+enum TimelineEventType {
+  APPOINTMENT
+  VITALS
+  DIAGNOSIS
+  PRESCRIPTION
+  LAB_REPORT
+  IMAGING
+  VACCINATION
+  ADMISSION
+  DISCHARGE
+  EMERGENCY
+  FOLLOW_UP
+}
+
+enum OTStatus {
+  SCHEDULED
+  PRE_OP
+  IN_SURGERY
+  RECOVERY
+  COMPLETED
+}
+
+enum ResourceCategory {
+  EQUIPMENT
+  CONSUMABLES
+  OXYGEN
+  MEDICINES
+  EMERGENCY_KITS
+  PPE
+  BLOOD_STORAGE
+}
+
+/// Types of community requests
+enum RequestType {
+  BLOOD
+  MEDICINE
+  EQUIPMENT
+  FOOD
+  GROCERY
+  TRANSPORT
+  SHELTER
+  VOLUNTEER
+  ROADSIDE
+}
+
+// -----------------------------------------------------------------------------
+// CORE IDENTITY & SECURITY
+// -----------------------------------------------------------------------------
+
+/// The core User entity representing a single authenticated identity.
 model User {
+  id         String  @id @default(uuid())
+  email      String  @unique
+  password   String
+  firstName  String
+  lastName   String
+  role       Role    @default(PATIENT)
+  phone      String?
+  avatar     String?
+  isVerified Boolean @default(false)
+
+  // Account Locking
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Profile Relationships
+  patientProfile   PatientProfile?
+  doctorProfile    DoctorProfile?
+  volunteerProfile VolunteerProfile?
+  ngoProfile       NGOProfile?
+
+  // Security & Identity Relationships
+  sessions           Session[]
+  refreshTokens      RefreshToken[]
+  otpVerifications   OTPVerification[]
+  passwordResets     PasswordReset[]
+  emailVerifications EmailVerification[]
+  loginHistory       LoginHistory[]
+  userDevices        UserDevice[]
+
+  // Core Features Relationships
+  appointmentsAsPatient Appointment[]               @relation("PatientAppointments")
+  appointmentsAsDoctor  Appointment[]               @relation("DoctorAppointments")
+  reviewsGiven          Review[]                    @relation("PatientReviews")
+  reviewsReceived       Review[]                    @relation("DoctorReviews")
+  medicalRecords        MedicalRecord[]
+  emergencyIncidents    EmergencyIncident[]
+  incidentTimelines     EmergencyIncidentTimeline[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  donations             Donation[]
+  medicalTimeline       MedicalTimelineEvent[]      @relation("PatientTimeline")
+  LabOrder              LabOrder[]
+  communityRequests     CommunityRequest[]          @relation("CommunityRequests")
+}
+
+/// Long-lived sessions for the user.
+model Session {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token  String @unique
+
+  // Tracking
+  deviceName String?
+  browser    String?
+  os         String?
+  ipAddress  String?
+  lastActive DateTime @default(now())
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+/// Refresh tokens for continuous JWT rotation.
+model RefreshToken {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      Role     @default(PATIENT)
-  phone     String?
-  avatar    String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+/// One-Time Password verification records (SMS/Email).
+model OTPVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  type      String // E.g., 'SMS', 'EMAIL'
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+/// Records for secure password reset flows.
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+/// Email verification tokens for account activation.
+model EmailVerification {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  expiresAt  DateTime
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+/// Immutable ledger of user login attempts.
+model LoginHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  status    String // 'SUCCESS', 'FAILED'
+  createdAt DateTime @default(now())
+}
+
+/// Registered user devices for push notifications (FCM tokens).
+model UserDevice {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceType String // 'iOS', 'Android', 'Web'
+  pushToken  String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// USER PROFILES & ROLES
+// -----------------------------------------------------------------------------
+
+/// Profile information specific to patients.
+model PatientProfile {
+  id                String  @id @default(uuid())
+  userId            String  @unique
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bloodGroup        String?
+  allergies         Json? // Deprecated: Use PatientAllergy
+  chronicConditions Json? // Deprecated: Use PatientChronicDisease
+  emergencyContacts Json?
+
+  // Normalized EHR Relations
+  structuredAllergies  PatientAllergy[]
+  structuredConditions PatientChronicDisease[]
+  vaccinations         PatientVaccination[]
+  familyHistory        FamilyMedicalHistory[]
+  vitals               PatientVitals[]
+  medications          Medication[]
+  hospitalAdmissions   HospitalAdmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Profile information specific to doctors.
+model DoctorProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization     String
+  experience         Int // Years
+  consultationFee    Float
+  bio                String?
+  availableDays      String[]
+  licenseNumber      String?
+  verificationStatus String   @default("PENDING") // PENDING, APPROVED, REJECTED
+
+  // Hospital Affiliation
+  hospitalId String?
+  hospital   Hospital? @relation(fields: [hospitalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Profile for Non-Governmental Organizations.
+model NGOProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationName   String
+  registrationNumber String?
+  focusArea          String?
+  website            String?
+  campaigns          DonationCampaign[]
+
+  inventory           NGOInventory[]
+  warehouses          NGOWarehouse[]
+  reliefKits          NGOReliefKit[]
+  distributionHistory NGODistributionHistory[]
+  partners            NGOPartnerOrganization[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// VOLUNTEER NORMALIZATION
+// -----------------------------------------------------------------------------
+
+/// Core profile for verified community volunteers.
+model VolunteerProfile {
+  id              String  @id @default(uuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reputationScore Float   @default(0.0)
+  isActive        Boolean @default(true)
+
+  skills       VolunteerSkill[]
+  availability VolunteerAvailability[]
+  verification VolunteerVerification?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activities   VolunteerActivity[]
+  badges       VolunteerBadge[]
+  certificates VolunteerCertificate[]
+  analytics    VolunteerAnalytics?
+}
+
+/// Granular skills for volunteers (e.g., CPR, O- Blood, Mechanic).
+model VolunteerSkill {
+  id        String           @id @default(uuid())
+  profileId String
+  profile   VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillName String
+  level     String? // 'BEGINNER', 'EXPERT', 'CERTIFIED'
+  createdAt DateTime         @default(now())
+}
+
+/// Time-based availability schedules for volunteers.
+model VolunteerAvailability {
+  id        String           @id @default(uuid())
+  profileId String
+  profile   VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  dayOfWeek Int // 0-6 (Sunday-Saturday)
+  startTime String // "09:00"
+  endTime   String // "17:00"
+}
+
+/// Strict identity verification records for volunteers.
+model VolunteerVerification {
+  id           String           @id @default(uuid())
+  profileId    String           @unique
+  profile      VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  documentType String // "NATIONAL_ID", "MEDICAL_LICENSE"
+  documentUrl  String
+  status       String           @default("PENDING")
+  verifiedAt   DateTime?
+  createdAt    DateTime         @default(now())
+}
+
+model VolunteerActivity {
+  id        String           @id @default(uuid())
+  profileId String
+  profile   VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  type      String
+  points    Float
+  notes     String?
+  createdAt DateTime         @default(now())
+}
+
+model VolunteerBadge {
+  id        String           @id @default(uuid())
+  profileId String
+  profile   VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  badgeName String
+  earnedAt  DateTime         @default(now())
+}
+
+model VolunteerCertificate {
+  id        String           @id @default(uuid())
+  profileId String
+  profile   VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title     String
+  qrCodeUrl String?
+  issuedAt  DateTime         @default(now())
+}
+
+model VolunteerAnalytics {
+  id                String           @id @default(uuid())
+  profileId         String           @unique
+  profile           VolunteerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  hoursServed       Float            @default(0)
+  requestsCompleted Int              @default(0)
+  avgResponseTime   Float            @default(0) // in minutes
+  donationsMade     Int              @default(0)
+  reputation        Float            @default(0.0)
+  rank              String           @default("Community Helper")
+  updatedAt         DateTime         @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// HOSPITAL ARCHITECTURE
+// -----------------------------------------------------------------------------
+
+/// The root entity for institutional partners.
+model Hospital {
+  id             String  @id @default(uuid())
+  name           String
+  registrationNo String? @unique
+  type           String? // PUBLIC, PRIVATE, CLINIC
+
+  // Normalized Location
+  latitude     Float?
+  longitude    Float?
+  geohash      String?
+  fullAddress  String?
+  city         String?
+  state        String?
+  country      String?
+  postalCode   String?
+  contactPhone String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relationships
-  doctorProfile         DoctorProfile?
-  appointmentsAsPatient Appointment[] @relation("PatientAppointments")
-  appointmentsAsDoctor  Appointment[] @relation("DoctorAppointments")
-  reviewsGiven          Review[]      @relation("PatientReviews")
-  reviewsReceived       Review[]      @relation("DoctorReviews")
+  departments       HospitalDepartment[]
+  beds              HospitalBedInventory[]
+  ambulances        AmbulanceFleet[]
+  staff             HospitalStaff[]
+  doctors           DoctorProfile[]
+  admissions        HospitalAdmission[]
+  HospitalBed       HospitalBed[]
+  PharmacyInventory PharmacyInventory[]
+  HospitalResource  HospitalResource[]
+  OTRoom            OTRoom[]
 }
 
-model DoctorProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id])
-  specialization  String
-  experience      Int      // Years of experience
-  consultationFee Float
-  bio             String?
-  availableDays   String[] // E.g. ["Monday", "Wednesday"]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+/// Specialized wings or departments within a hospital.
+model HospitalDepartment {
+  id         String   @id @default(uuid())
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  name       String // e.g., "Cardiology", "ER"
+  headName   String?
+  createdAt  DateTime @default(now())
+
+  beds  HospitalBed[]
+  staff HospitalStaff[]
 }
 
-model Appointment {
-  id              String            @id @default(uuid())
-  patientId       String
-  doctorId        String
-  patient         User              @relation("PatientAppointments", fields: [patientId], references: [id])
-  doctor          User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
-  date            DateTime
-  status          AppointmentStatus @default(PENDING)
-  meetingLink     String?           // WebRTC/Video call room ID
-  aiPrescription  String?           // AI generated prescription
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+// Dynamic tracker for institutional capacity.
+model HospitalBedInventory {
+  id            String   @id @default(uuid())
+  hospitalId    String
+  hospital      Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  bedType       String // GENERAL, ICU, VENTILATOR
+  totalCapacity Int
+  occupiedBeds  Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-model Review {
-  id          String   @id @default(uuid())
+model HospitalBed {
+  id           String              @id @default(uuid())
+  hospitalId   String
+  hospital     Hospital            @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  departmentId String?
+  department   HospitalDepartment? @relation(fields: [departmentId], references: [id])
+  type         String // GENERAL, ICU, EMERGENCY, OT_RECOVERY
+  status       String // AVAILABLE, OCCUPIED, CLEANING, MAINTENANCE
+  roomNumber   String?
+  bedNumber    String
+
+  allocations BedAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Dispatchable responder vehicles associated with a hospital.
+model AmbulanceFleet {
+  id            String      @id @default(uuid())
+  hospitalId    String
+  hospital      Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  vehicleNumber String      @unique
+  type          String // ALS, BLS
+  status        FleetStatus @default(IDLE)
+
+  // Real-time Telemetry
+  currentLat Float?
+  currentLng Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedIncidents EmergencyIncident[]
+  maintenanceLogs   AmbulanceMaintenanceLog[]
+  fuelLogs          AmbulanceFuelLog[]
+  driverAssignments AmbulanceDriverAssignment[]
+
+  @@index([currentLat, currentLng])
+}
+
+model AmbulanceMaintenanceLog {
+  id          String         @id @default(uuid())
+  fleetId     String
+  fleet       AmbulanceFleet @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  date        DateTime       @default(now())
+  description String
+  cost        Float?
+  status      String // SCHEDULED, IN_PROGRESS, COMPLETED
+}
+
+model AmbulanceFuelLog {
+  id       String         @id @default(uuid())
+  fleetId  String
+  fleet    AmbulanceFleet @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  date     DateTime       @default(now())
+  liters   Float
+  cost     Float
+  odometer Int
+}
+
+model AmbulanceDriverAssignment {
+  id         String         @id @default(uuid())
+  fleetId    String
+  fleet      AmbulanceFleet @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+  driverId   String
+  shiftStart DateTime
+  shiftEnd   DateTime?
+}
+
+/// Hospital administrative or clinical staff (nurses, receptionists).
+model HospitalStaff {
+  id           String              @id @default(uuid())
+  hospitalId   String
+  hospital     Hospital            @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  userId       String // Maps to User
+  departmentId String?
+  department   HospitalDepartment? @relation(fields: [departmentId], references: [id])
+  roleTitle    String // e.g., "Chief Triage Officer"
+
+  shifts             StaffShift[]
+  attendances        StaffAttendance[]
+  leaves             StaffLeave[]
+  trainings          StaffTraining[]
+  certifications     StaffCertification[]
+  performanceReviews StaffPerformanceReview[]
+
+  createdAt DateTime @default(now())
+}
+
+model StaffShift {
+  id           String        @id @default(uuid())
+  staffId      String
+  staff        HospitalStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  startTime    DateTime
+  endTime      DateTime
+  departmentId String?
+}
+
+model StaffAttendance {
+  id       String        @id @default(uuid())
+  staffId  String
+  staff    HospitalStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date     DateTime
+  clockIn  DateTime?
+  clockOut DateTime?
+  status   String // PRESENT, ABSENT, HALF_DAY, LATE
+}
+
+model StaffLeave {
+  id        String        @id @default(uuid())
+  staffId   String
+  staff     HospitalStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  status    String // PENDING, APPROVED, REJECTED
+}
+
+model StaffTraining {
+  id             String        @id @default(uuid())
+  staffId        String
+  staff          HospitalStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  courseName     String
+  completionDate DateTime?
+  status         String // ENROLLED, COMPLETED
+}
+
+model StaffCertification {
+  id         String        @id @default(uuid())
+  staffId    String
+  staff      HospitalStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  certName   String
+  issuedBy   String
+  issueDate  DateTime
+  expiryDate DateTime?
+}
+
+model StaffPerformanceReview {
+  id         String        @id @default(uuid())
+  staffId    String
+  staff      HospitalStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  reviewerId String
+  score      Float
+  comments   String?
+  reviewDate DateTime      @default(now())
+}
+
+/// Represents a patient admission to a hospital.
+model HospitalAdmission {
+  id            String         @id @default(uuid())
+  hospitalId    String
+  hospital      Hospital       @relation(fields: [hospitalId], references: [id])
+  patientId     String
+  patient       PatientProfile @relation(fields: [patientId], references: [id])
+  admissionDate DateTime       @default(now())
+  dischargeDate DateTime?
+  reason        String
+  status        String         @default("ADMITTED") // ADMITTED, DISCHARGED, TRANSFERRED
+
+  allocations BedAllocation[]
+  transfers   WardTransfer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BedAllocation {
+  id          String            @id @default(uuid())
+  admissionId String
+  admission   HospitalAdmission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  bedId       String
+  bed         HospitalBed       @relation(fields: [bedId], references: [id])
+  startDate   DateTime          @default(now())
+  endDate     DateTime?
+  status      String // ACTIVE, RELEASED
+}
+
+model WardTransfer {
+  id           String            @id @default(uuid())
+  admissionId  String
+  admission    HospitalAdmission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  fromDeptId   String
+  toDeptId     String
+  transferDate DateTime          @default(now())
+  reason       String
+  status       String // REQUESTED, APPROVED, COMPLETED
+}
+
+// -----------------------------------------------------------------------------
+// CLINICAL ENCOUNTERS & EHR (ELECTRONIC HEALTH RECORD)
+// -----------------------------------------------------------------------------
+
+/// Longitudinal Health Timeline Event.
+model MedicalTimelineEvent {
+  id          String            @id @default(uuid())
   patientId   String
-  doctorId    String
-  patient     User     @relation("PatientReviews", fields: [patientId], references: [id])
-  doctor      User     @relation("DoctorReviews", fields: [doctorId], references: [id])
-  rating      Int      // 1 to 5
-  comment     String?
-  createdAt   DateTime @default(now())
+  patient     User              @relation("PatientTimeline", fields: [patientId], references: [id], onDelete: Cascade)
+  eventType   TimelineEventType
+  title       String
+  description String?
+  date        DateTime          @default(now())
+
+  // Polymorphic IDs to relate to actual records
+  referenceId String?
+
+  createdAt DateTime @default(now())
+}
+
+/// Dedicated Patient Vitals
+model PatientVitals {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  height           Float? // cm
+  weight           Float? // kg
+  bmi              Float?
+  bloodPressure    String? // e.g. "120/80"
+  heartRate        Int? // bpm
+  temperature      Float? // Celsius
+  respiratoryRate  Int? // breaths per min
+  oxygenSaturation Float? // percentage
+  recordedAt       DateTime       @default(now())
+}
+
+/// Normalized Allergy Record
+model PatientAllergy {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  allergen         String
+  reaction         String?
+  severity         String? // MILD, MODERATE, SEVERE
+  diagnosedAt      DateTime?
+  createdAt        DateTime       @default(now())
+}
+
+/// Normalized Chronic Disease Record
+model PatientChronicDisease {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  diseaseName      String
+  diagnosedAt      DateTime?
+  status           String         @default("ACTIVE") // ACTIVE, RESOLVED, MANAGED
+  notes            String?
+  createdAt        DateTime       @default(now())
+}
+
+/// Vaccination Record
+model PatientVaccination {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  vaccineName      String
+  doseNumber       Int?
+  administeredAt   DateTime
+  administeredBy   String?
+  nextDueDate      DateTime?
+  createdAt        DateTime       @default(now())
+}
+
+/// Family Medical History
+model FamilyMedicalHistory {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  relation         String // FATHER, MOTHER, SIBLING, etc.
+  condition        String
+  diagnosedAge     Int?
+  notes            String?
+  createdAt        DateTime       @default(now())
+}
+
+/// SOAP Note for clinical documentation.
+model SOAPNote {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  subjective    String?
+  objective     String?
+  assessment    String?
+  plan          String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+/// Universal Medical File Architecture for documents, DICOM metadata, etc.
+model MedicalFile {
+  id              String         @id @default(uuid())
+  medicalRecordId String?
+  medicalRecord   MedicalRecord? @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  fileName        String
+  fileType        String // PDF, JPG, DICOM, DOCX
+  fileUrl         String
+  fileSize        Int // bytes
+  metadata        Json? // Custom metadata for imaging, etc.
+  uploadedAt      DateTime       @default(now())
+}
+
+/// A centralized medical record encompassing all clinical documentation types.
+model MedicalRecord {
+  id        String     @id @default(uuid())
+  patientId String
+  patient   User       @relation(fields: [patientId], references: [id])
+  doctorId  String?
+  type      RecordType @default(GENERAL)
+
+  // Encapsulates Prescriptions, Lab Reports, Notes
+  data        Json?
+  attachments String[] // Deprecated: Use MedicalFile
+
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prescriptions Prescription[]
+  labReports    LabReport[] // Deprecated: Use LabOrder -> LabReport architecture
+  files         MedicalFile[]
+}
+
+/// A specific prescription tied to a medical record.
+model Prescription {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  medicationName  String
+  dosage          String
+  frequency       String
+  durationDays    Int
+  instructions    String?
+  createdAt       DateTime      @default(now())
+}
+
+/// Normalized Medication History
+model Medication {
+  id               String         @id @default(uuid())
+  patientProfileId String
+  patient          PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  name             String
+  dosage           String
+  frequency        String
+  startDate        DateTime
+  endDate          DateTime?
+  prescribedBy     String?
+  status           String         @default("ACTIVE") // ACTIVE, DISCONTINUED
+  createdAt        DateTime       @default(now())
+
+  schedules MedicationSchedule[]
+}
+
+/// Specific schedule for a medication
+model MedicationSchedule {
+  id           String               @id @default(uuid())
+  medicationId String
+  medication   Medication           @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  time         String // "08:00"
+  reminders    MedicationReminder[]
+}
+
+/// Reminders for medication schedules
+model MedicationReminder {
+  id         String             @id @default(uuid())
+  scheduleId String
+  schedule   MedicationSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  date       DateTime
+  status     String             @default("PENDING") // PENDING, TAKEN, MISSED
+  sentAt     DateTime?
+}
+
+/// Normalized Lab Order
+model LabOrder {
+  id        String   @id @default(uuid())
+  patientId String
+  patient   User     @relation(fields: [patientId], references: [id], map: "LabOrderPatient")
+  doctorId  String?
+  testName  String
+  status    String   @default("ORDERED") // ORDERED, SAMPLE_COLLECTED, PROCESSING, QUALITY_CHECK, REPORT_APPROVAL, COMPLETED, CANCELLED
+  orderedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  report LabReportV2?
+}
+
+/// Normalized Lab Report
+model LabReportV2 {
+  id             String   @id @default(uuid())
+  labOrderId     String   @unique
+  labOrder       LabOrder @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+  resultValue    String
+  referenceRange String?
+  unit           String?
+  isAbnormal     Boolean  @default(false)
+  notes          String?
+  completedAt    DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// ERP: BILLING, PHARMACY, RESOURCE, OT
+// -----------------------------------------------------------------------------
+
+model Invoice {
+  id          String    @id @default(uuid())
+  patientId   String
+  hospitalId  String
+  totalAmount Float
+  status      String // DRAFT, ISSUED, PAID, CANCELLED, REFUNDED
+  issuedAt    DateTime  @default(now())
+  dueDate     DateTime?
+
+  payments  Payment[]
+  refunds   Refund[]
+  insurance InsuranceClaim?
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount      Float
+  method      String // CARD, CASH, UPI, INSURANCE
+  status      String // SUCCESS, FAILED
+  paymentDate DateTime @default(now())
+}
+
+model Refund {
+  id         String   @id @default(uuid())
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount     Float
+  reason     String
+  refundDate DateTime @default(now())
+}
+
+model InsuranceClaim {
+  id          String   @id @default(uuid())
+  invoiceId   String   @unique
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  provider    String
+  policyNo    String
+  claimAmount Float
+  status      String // SUBMITTED, APPROVED, REJECTED, PARTIAL
+  submittedAt DateTime @default(now())
+}
+
+model PharmacyInventory {
+  id           String   @id @default(uuid())
+  hospitalId   String
+  hospital     Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  medicineName String
+  stockLevel   Int
+  reorderLevel Int
+
+  batches MedicineBatch[]
+}
+
+model MedicineBatch {
+  id          String            @id @default(uuid())
+  inventoryId String
+  inventory   PharmacyInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  batchNo     String
+  expiryDate  DateTime
+  quantity    Int
+}
+
+model HospitalResource {
+  id          String           @id @default(uuid())
+  hospitalId  String
+  hospital    Hospital         @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  category    ResourceCategory
+  name        String
+  quantity    Int
+  unit        String?
+  lastUpdated DateTime         @default(now())
+}
+
+model OTRoom {
+  id         String   @id @default(uuid())
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  roomName   String
+  status     String // AVAILABLE, IN_USE, MAINTENANCE
+
+  schedules OTScheduling[]
+}
+
+model OTScheduling {
+  id           String   @id @default(uuid())
+  roomId       String
+  room         OTRoom   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  patientId    String
+  surgeonId    String
+  status       OTStatus @default(SCHEDULED)
+  scheduledFor DateTime
+
+  timeline SurgeryTimeline[]
+}
+
+model SurgeryTimeline {
+  id         String       @id @default(uuid())
+  scheduleId String
+  schedule   OTScheduling @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  status     OTStatus
+  timestamp  DateTime     @default(now())
+  notes      String?
+}
+
+/// Legacy Lab Report (Keep for backward compatibility)
+model LabReport {
+  id              String        @id @default(uuid())
+  medicalRecordId String
+  medicalRecord   MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  testName        String
+  resultValue     String
+  referenceRange  String?
+  unit            String?
+  isAbnormal      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+}
+
+/// Represents a booked clinical consultation.
+model Appointment {
+  id                 String            @id @default(uuid())
+  patientId          String
+  doctorId           String
+  patient            User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor             User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  date               DateTime
+  status             AppointmentStatus @default(REQUESTED)
+  urgencyLevel       String            @default("NORMAL") // NORMAL, URGENT
+  cancellationReason String?
+  meetingLink        String?
+  aiPrescription     String?
+
+  // Queue Management
+  queuePosition Int?
+  expectedTime  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  soapNote SOAPNote?
+}
+
+/// Patient feedback for a doctor.
+model Review {
+  id        String   @id @default(uuid())
+  patientId String
+  doctorId  String
+  patient   User     @relation("PatientReviews", fields: [patientId], references: [id])
+  doctor    User     @relation("DoctorReviews", fields: [doctorId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// EMERGENCY INCIDENTS (SOS)
+// -----------------------------------------------------------------------------
+
+/// An active or resolved emergency incident triggered by a user.
+model EmergencyIncident {
+  id         String @id @default(uuid())
+  reporterId String
+  reporter   User   @relation(fields: [reporterId], references: [id])
+
+  type     IncidentType
+  severity IncidentSeverity @default(HIGH)
+  status   IncidentStatus   @default(CREATED)
+
+  // Expanded Geo-location
+  latitude    Float
+  longitude   Float
+  geohash     String?
+  fullAddress String?
+  city        String?
+  state       String?
+  country     String?
+  postalCode  String?
+
+  // Dispatch
+  assignedFleetId String?
+  assignedFleet   AmbulanceFleet? @relation(fields: [assignedFleetId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timeline EmergencyIncidentTimeline[]
+
+  @@index([latitude, longitude])
+  @@index([geohash])
+}
+
+/// Timeline of status transitions for an emergency incident.
+model EmergencyIncidentTimeline {
+  id         String            @id @default(uuid())
+  incidentId String
+  incident   EmergencyIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  previousStatus IncidentStatus?
+  newStatus      IncidentStatus
+
+  changedById String?
+  changedBy   User?   @relation(fields: [changedById], references: [id])
+
+  notes     String?
+  timestamp DateTime @default(now())
+
+  @@index([incidentId])
+}
+
+// -----------------------------------------------------------------------------
+// DONATION ARCHITECTURE
+// -----------------------------------------------------------------------------
+
+/// A broad campaign initiated by an NGO for raising resources.
+model DonationCampaign {
+  id           String           @id @default(uuid())
+  ngoProfileId String
+  ngoProfile   NGOProfile       @relation(fields: [ngoProfileId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  category     DonationCategory
+  startDate    DateTime         @default(now())
+  endDate      DateTime?
+  isActive     Boolean          @default(true)
+
+  requests  DonationRequest[]
+  donations Donation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// A specific request made within a campaign (e.g., "Need 5 units of O- blood").
+model DonationRequest {
+  id                String           @id @default(uuid())
+  campaignId        String
+  campaign          DonationCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  itemName          String
+  quantityNeeded    Int
+  quantityFulfilled Int              @default(0)
+  urgency           String           @default("NORMAL")
+  createdAt         DateTime         @default(now())
+}
+
+/// An individual pledge or act of donation by a user.
+model Donation {
+  id         String            @id @default(uuid())
+  donorId    String
+  donor      User              @relation(fields: [donorId], references: [id])
+  campaignId String?
+  campaign   DonationCampaign? @relation(fields: [campaignId], references: [id])
+  category   DonationCategory
+  status     String            @default("PLEDGED") // PLEDGED, RECEIVED, DISTRIBUTED
+
+  items        DonationItem[]
+  transactions DonationTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Granular line-item of a donation (e.g., "1 box of Paracetamol").
+model DonationItem {
+  id         String    @id @default(uuid())
+  donationId String
+  donation   Donation  @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  itemName   String
+  quantity   Int
+  unit       String?
+  expiryDate DateTime?
+}
+
+/// Ledger for monetary or tracked physical donation transactions.
+model DonationTransaction {
+  id             String   @id @default(uuid())
+  donationId     String
+  donation       Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  amount         Float?
+  currency       String?
+  transactionRef String?
+  status         String // SUCCESS, PENDING, FAILED
+  processedAt    DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// COMMUNITY ASSISTANCE & NGO OPERATIONS
+// -----------------------------------------------------------------------------
+
+/// Generic Community Request
+model CommunityRequest {
+  id          String      @id @default(uuid())
+  requesterId String
+  requester   User        @relation("CommunityRequests", fields: [requesterId], references: [id])
+  type        RequestType
+  title       String
+  description String
+  urgency     String      @default("NORMAL")
+  status      String      @default("OPEN") // OPEN, IN_PROGRESS, FULFILLED, CANCELLED
+
+  // Location
+  latitude    Float?
+  longitude   Float?
+  fullAddress String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NGOInventory {
+  id           String        @id @default(uuid())
+  ngoProfileId String
+  ngoProfile   NGOProfile    @relation(fields: [ngoProfileId], references: [id], onDelete: Cascade)
+  itemName     String
+  quantity     Int
+  unit         String
+  warehouseId  String?
+  warehouse    NGOWarehouse? @relation(fields: [warehouseId], references: [id])
+  updatedAt    DateTime      @updatedAt
+}
+
+model NGOWarehouse {
+  id           String         @id @default(uuid())
+  ngoProfileId String
+  ngoProfile   NGOProfile     @relation(fields: [ngoProfileId], references: [id], onDelete: Cascade)
+  name         String
+  location     String
+  inventory    NGOInventory[]
+}
+
+model NGOReliefKit {
+  id           String     @id @default(uuid())
+  ngoProfileId String
+  ngoProfile   NGOProfile @relation(fields: [ngoProfileId], references: [id], onDelete: Cascade)
+  kitName      String
+  contents     Json
+  quantity     Int
+  createdAt    DateTime   @default(now())
+}
+
+model NGODistributionHistory {
+  id            String     @id @default(uuid())
+  ngoProfileId  String
+  ngoProfile    NGOProfile @relation(fields: [ngoProfileId], references: [id], onDelete: Cascade)
+  eventName     String
+  location      String
+  itemsGiven    Json
+  beneficiaries Int
+  date          DateTime   @default(now())
+}
+
+model NGOPartnerOrganization {
+  id              String     @id @default(uuid())
+  ngoProfileId    String
+  ngoProfile      NGOProfile @relation(fields: [ngoProfileId], references: [id], onDelete: Cascade)
+  partnerName     String
+  partnershipType String
+  since           DateTime
+}
+
+// -----------------------------------------------------------------------------
+// SYSTEM ENTITIES
+// -----------------------------------------------------------------------------
+
+/// In-app notifications for users.
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String // INFO, ALERT, SUCCESS
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+/// Immutable HIPAA-compliant audit log for critical actions.
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String // e.g., 'READ_EHR', 'UPDATE_BEDS'
+  entity    String // e.g., 'MedicalRecord', 'HospitalBedInventory'
+  entityId  String
+  ipAddress String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// AI GOVERNANCE & AUDITING
+// -----------------------------------------------------------------------------
+
+model AIProviderConfig {
+  id               String   @id @default(uuid())
+  providerName     String   @unique
+  isActive         Boolean  @default(true)
+  apiKey           String? // Masked or env-ref
+  apiEndpoint      String?
+  supportedModels  String[]
+  capabilities     String[] // e.g. TEXT, VISION, EMBEDDING
+  maxTokens        Int      @default(4096)
+  latency          Float    @default(0) // ms
+  cost             Float    @default(0) // USD per 1k tokens
+  priority         Int      @default(1)
+  failoverProvider String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model AIPromptTemplate {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  template     String
+  version      String   @default("1.0.0")
+  modelConfig  Json? // temperature, topP, maxTokens
+  isActive     Boolean  @default(true)
+  isDeprecated Boolean  @default(false)
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AIAuditLog {
+  id           String  @id @default(uuid())
+  provider     String
+  model        String
+  userId       String?
+  responseTime Float // ms
+  tokensUsed   Int     @default(0)
+  cost         Float   @default(0.0)
+  success      Boolean @default(true)
+  errorMessage String?
+
+  // Encrypted or sanitized in transit
+  promptMetadata   Json?
+  responseMetadata Json?
+
+  timestamp DateTime @default(now())
 }

@@ -8,6 +8,14 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "homepage": "https://nex-heal.vercel.app/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shubhamkumar-git01/NexHeal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shubhamkumar-git01/NexHeal/issues"
+  },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "class-variance-authority": "^0.7.1",

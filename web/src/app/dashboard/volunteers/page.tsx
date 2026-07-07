@@ -14,11 +14,23 @@ import { cn } from "@/lib/utils";
 export default function VolunteersPage() {
   const { user } = useAuth(false);
   const role = user?.role?.toLowerCase() || 'patient';
-  const isVolunteer = role === 'volunteer';
+  const isVolunteer = role === 'volunteer' || role === 'responder';
+  const isNgo = role === 'ngo';
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(isVolunteer ? "Dashboard" : "Network");
+  const [activeTab, setActiveTab] = useState(isVolunteer ? "Dashboard" : isNgo ? "NGO Ops" : "Network");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const volunteerAnalytics = {
+    hoursServed: 120,
+    requestsCompleted: 45,
+    avgResponseTime: "8 mins",
+    donationsMade: 12,
+    reputation: 4.8,
+    rank: "Platinum Volunteer"
+  };
+
+  const badges = ["First Responder", "Blood Hero", "Platinum Volunteer", "Emergency Guardian"];
 
   const volunteers = [
     { id: 1, name: "Aman Gupta", type: "Blood Donor (O+)", location: "2 km away", phone: "+91 9876543210", available: true },
@@ -69,6 +81,11 @@ export default function VolunteersPage() {
             <Activity className="w-4 h-4 mr-2" /> My Dashboard
           </Button>
         )}
+        {isNgo && (
+          <Button variant={activeTab === "NGO Ops" ? "default" : "outline"} size="sm" className="rounded-full shrink-0" onClick={() => setActiveTab("NGO Ops")}>
+            <Building2 className="w-4 h-4 mr-2" /> NGO Operations
+          </Button>
+        )}
         <Button variant={activeTab === "Network" ? "default" : "outline"} size="sm" className="rounded-full shrink-0" onClick={() => setActiveTab("Network")}>
           <Search className="w-4 h-4 mr-2" /> Find Responders
         </Button>
@@ -77,7 +94,7 @@ export default function VolunteersPage() {
         </Button>
         {isVolunteer && (
           <Button variant={activeTab === "Profile" ? "default" : "outline"} size="sm" className="rounded-full shrink-0" onClick={() => setActiveTab("Profile")}>
-            <ShieldCheck className="w-4 h-4 mr-2" /> Profile & Verification
+            <ShieldCheck className="w-4 h-4 mr-2" /> Profile & Certificates
           </Button>
         )}
       </div>
@@ -94,22 +111,35 @@ export default function VolunteersPage() {
             <Card>
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Completed</p>
-                <p className="text-2xl font-bold">14</p>
+                <p className="text-2xl font-bold">{volunteerAnalytics.requestsCompleted}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Points</p>
-                <p className="text-2xl font-bold text-amber-500">3,450</p>
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Reputation</p>
+                <p className="text-2xl font-bold text-amber-500">{volunteerAnalytics.reputation} / 5</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Level</p>
-                <p className="text-xl font-bold text-emerald-600 flex items-center justify-center"><Award className="w-5 h-5 mr-1" /> Gold</p>
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Rank</p>
+                <p className="text-sm font-bold text-emerald-600 flex items-center justify-center mt-2"><Award className="w-4 h-4 mr-1" /> {volunteerAnalytics.rank}</p>
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-sm font-bold flex items-center"><Award className="w-4 h-4 mr-2 text-amber-500" /> Gamification & Badges</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 flex flex-wrap gap-2">
+              {badges.map(b => (
+                <span key={b} className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 rounded-full text-xs font-bold flex items-center">
+                  <Award className="w-3 h-3 mr-1" /> {b}
+                </span>
+              ))}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="border-b pb-4">
@@ -214,8 +244,8 @@ export default function VolunteersPage() {
           
           <Card className="md:col-span-2 border-slate-200 dark:border-slate-800">
             <CardHeader>
-              <CardTitle>Verification Workflow</CardTitle>
-              <CardDescription>Complete these steps to unlock higher level requests.</CardDescription>
+              <CardTitle>Verification Workflow & Certificates</CardTitle>
+              <CardDescription>Complete these steps to unlock QR-verifiable certificates.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 dark:bg-slate-900/50">
@@ -227,17 +257,65 @@ export default function VolunteersPage() {
               </div>
               <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 dark:bg-slate-900/50">
                 <div>
-                  <p className="font-semibold text-sm">Medical License (Optional)</p>
-                  <p className="text-xs text-muted-foreground">Required for Medical Volunteers</p>
+                  <p className="font-semibold text-sm">QR-Verifiable Certificate</p>
+                  <p className="text-xs text-muted-foreground">Blockchain-secured Volunteer Certificate</p>
                 </div>
-                <Button size="sm" variant="outline">Upload Document</Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">View QR Certificate</Button>
               </div>
-              <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                <div>
-                  <p className="font-semibold text-sm">Background Check</p>
-                  <p className="text-xs text-muted-foreground">Handled by partner NGOs</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "NGO Ops" && isNgo && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Active Campaigns</p>
+                <p className="text-2xl font-bold">3</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Relief Kits</p>
+                <p className="text-2xl font-bold text-emerald-600">1,250</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Volunteers</p>
+                <p className="text-2xl font-bold text-blue-600">84</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Warehouses</p>
+                <p className="text-2xl font-bold">2</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-lg flex items-center"><Building2 className="w-5 h-5 mr-2" /> Distribution History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b pb-4">
+                  <div>
+                    <h4 className="font-bold">Flood Relief Phase 1</h4>
+                    <p className="text-sm text-muted-foreground">North District • 500 Beneficiaries</p>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">Completed</span>
                 </div>
-                <span className="text-xs font-bold text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded flex items-center"><Clock className="w-3 h-3 mr-1" /> Pending</span>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="font-bold">Medical Equipment Drive</h4>
+                    <p className="text-sm text-muted-foreground">City Hospital • 20 Oxygen Concentrators</p>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-1 bg-amber-100 text-amber-700 rounded-full">In Progress</span>
+                </div>
               </div>
             </CardContent>
           </Card>

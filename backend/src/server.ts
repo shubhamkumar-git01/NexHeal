@@ -1,69 +1,146 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import compression from 'compression';
+import { PrismaClient } from '@prisma/client';
+
 import { notFound, errorHandler } from './middlewares/errorMiddleware';
+import { rateLimiter } from './middlewares/rateLimiter';
+import { requestContext } from './middlewares/requestContext';
+import { Logger } from './infrastructure/logger/Logger';
+import { WebSocketManager } from './infrastructure/websocket/WebSocketManager';
+
 import authRoutes from './routes/authRoutes';
 import aiRoutes from './routes/aiRoutes';
 import dashboardRoutes from './routes/dashboardRoutes';
+import ehrRoutes from './routes/ehrRoutes';
+import appointmentRoutes from './routes/appointmentRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 dotenv.config();
 
 const app: Express = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
-});
+const prisma = new PrismaClient();
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(helmet());
+// Initialize WebSocket Manager
+WebSocketManager.initialize(server);
+
+// ==========================================
+// SYSTEM HARDENING & INFRASTRUCTURE
+// ==========================================
+
+// 1. Observability
+app.use(requestContext);
 app.use(morgan('dev'));
 
-// Basic Health Check Route
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'NexHeal API is up and running!',
-    timestamp: new Date().toISOString(),
-  });
+// 2. Security Hardening
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+
+// CORS Hardening
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+}));
+
+// 3. Performance
+app.use(compression());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 4. Rate Limiting
+app.use(rateLimiter);
+
+// ==========================================
+// HEALTH CHECKS
+// ==========================================
+
+app.get('/api/health/liveness', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'success', message: 'Liveness OK' });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-
-// Socket.io Connection
-io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-
-  socket.on('join-room', (roomId, userId) => {
-    console.log(`User ${userId} joined room ${roomId}`);
-    socket.join(roomId);
-    socket.to(roomId).emit('user-connected', userId);
-
-    socket.on('disconnect', () => {
-      console.log(`User ${userId} disconnected from room ${roomId}`);
-      socket.to(roomId).emit('user-disconnected', userId);
-    });
-  });
+app.get('/api/health/readiness', async (req: Request, res: Response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    // In a real app, also check Redis connection here
+    res.status(200).json({ status: 'success', message: 'Readiness OK', database: 'connected' });
+  } catch (error) {
+    Logger.error('Readiness check failed', error);
+    res.status(503).json({ status: 'error', message: 'Service Unavailable' });
+  }
 });
 
-// Error Handling Middlewares
+// ==========================================
+// API VERSIONING
+// ==========================================
+
+const apiRouter = express.Router();
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/ai', aiRoutes);
+apiRouter.use('/dashboard', dashboardRoutes);
+apiRouter.use('/ehr', ehrRoutes);
+apiRouter.use('/appointments', appointmentRoutes);
+apiRouter.use('/analytics', analyticsRoutes);
+
+app.use('/api/v1', apiRouter);
+
+// Fallback for backward compatibility with previous sprints
+app.use('/api', apiRouter);
+
+// ==========================================
+// ERROR HANDLING
+// ==========================================
 app.use(notFound);
 app.use(errorHandler);
 
-// Start Server
+// ==========================================
+// STARTUP & GRACEFUL SHUTDOWN
+// ==========================================
 const port = process.env.PORT || 5000;
+
 server.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
+  Logger.info(`Server is running at http://localhost:${port}`);
 });
+
+const gracefulShutdown = async (signal: string) => {
+  Logger.info(`Received ${signal}. Starting graceful shutdown...`);
+  
+  server.close(async () => {
+    Logger.info('HTTP server closed.');
+    
+    // Disconnect WebSockets
+    WebSocketManager.close();
+
+    // Disconnect Database
+    await prisma.$disconnect();
+    Logger.info('Database connection closed.');
+
+    // In a real app: disconnect Redis, Stop Queues here
+    
+    Logger.info('Graceful shutdown completed. Exiting process.');
+    process.exit(0);
+  });
+
+  // Force close if taking too long
+  setTimeout(() => {
+    Logger.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

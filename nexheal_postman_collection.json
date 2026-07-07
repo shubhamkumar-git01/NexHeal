@@ -1,0 +1,43 @@
+{
+  "info": {
+    "name": "NexHeal v1.0.0 API",
+    "description": "Postman collection for NexHeal Enterprise API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{API_URL}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@nexheal.com\",\"password\":\"admin123\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Get Healthcare Analytics",
+          "request": {
+            "method": "GET",
+            "url": "{{API_URL}}/analytics/healthcare",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{JWT_TOKEN}}"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

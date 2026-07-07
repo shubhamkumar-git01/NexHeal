@@ -1,85 +1,111 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
-import prisma from '../config/prisma';
-import generateToken from '../utils/generateToken';
+import { AuthService } from '../services/authService';
 
-// @desc    Register a new user (Patient or Doctor)
-// @route   POST /api/auth/register
-// @access  Public
-export const registerUser = async (req: Request, res: Response) => {
-  try {
-    const { email, password, firstName, lastName, role, specialization, experience, consultationFee } = req.body;
-
-    const userExists = await prisma.user.findUnique({ where: { email } });
-
-    if (userExists) {
-      res.status(400);
-      throw new Error('User already exists');
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: role || 'PATIENT',
-      },
-    });
-
-    // If role is DOCTOR, also create their DoctorProfile
-    if (user.role === 'DOCTOR') {
-      await prisma.doctorProfile.create({
-        data: {
-          userId: user.id,
-          specialization: specialization || 'General',
-          experience: experience ? parseInt(experience) : 0,
-          consultationFee: consultationFee ? parseFloat(consultationFee) : 0.0,
-        },
-      });
-    }
-
-    res.status(201).json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      token: generateToken(user.id, user.role),
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ message: errorMessage });
-  }
+/**
+ * Standardized API Response format
+ */
+const sendResponse = (res: Response, statusCode: number, success: boolean, data?: any, error?: string) => {
+  res.status(statusCode).json({
+    success,
+    data,
+    error,
+    timestamp: new Date().toISOString()
+  });
 };
 
-// @desc    Auth user & get token
-// @route   POST /api/auth/login
-// @access  Public
-export const loginUser = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        token: generateToken(user.id, user.role),
+export class AuthController {
+  
+  static async register(req: Request, res: Response) {
+    try {
+      const result = await AuthService.register({
+        ...req.body,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
       });
-    } else {
-      res.status(401);
-      throw new Error('Invalid email or password');
+      
+      const { password, ...userWithoutPassword } = result.user;
+      sendResponse(res, 201, true, {
+        user: userWithoutPassword,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken
+      });
+    } catch (error: any) {
+      sendResponse(res, 400, false, undefined, error.message);
     }
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ message: errorMessage });
   }
-};
+
+  static async login(req: Request, res: Response) {
+    try {
+      const result = await AuthService.login({
+        ...req.body,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      const { password, ...userWithoutPassword } = result.user;
+      sendResponse(res, 200, true, {
+        user: userWithoutPassword,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken
+      });
+    } catch (error: any) {
+      const isLocked = error.message.includes('locked');
+      sendResponse(res, isLocked ? 423 : 401, false, undefined, error.message);
+    }
+  }
+
+  static async refresh(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+      const userId = (req as any).user?.id; // Assuming protect middleware is used OR refresh token is parsed
+      
+      if (!refreshToken || !userId) {
+        return sendResponse(res, 400, false, undefined, "Refresh token and User ID are required.");
+      }
+
+      const tokens = await AuthService.refresh(userId, refreshToken, req.ip, req.headers['user-agent']);
+      sendResponse(res, 200, true, tokens);
+    } catch (error: any) {
+      sendResponse(res, 401, false, undefined, error.message);
+    }
+  }
+
+  static async logout(req: Request, res: Response) {
+    try {
+      const { refreshToken } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!refreshToken || !userId) {
+        return sendResponse(res, 400, false, undefined, "Refresh token and User ID are required.");
+      }
+
+      await AuthService.logout(userId, refreshToken, req.ip);
+      sendResponse(res, 200, true, { message: "Logged out successfully" });
+    } catch (error: any) {
+      sendResponse(res, 500, false, undefined, error.message);
+    }
+  }
+
+  static async logoutAll(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        return sendResponse(res, 400, false, undefined, "User ID is required.");
+      }
+
+      await AuthService.logoutAll(userId, req.ip);
+      sendResponse(res, 200, true, { message: "Logged out from all devices successfully" });
+    } catch (error: any) {
+      sendResponse(res, 500, false, undefined, error.message);
+    }
+  }
+
+  static async getMe(req: Request, res: Response) {
+    try {
+      const user = (req as any).user;
+      sendResponse(res, 200, true, { user });
+    } catch (error: any) {
+      sendResponse(res, 500, false, undefined, error.message);
+    }
+  }
+}
