@@ -1,12 +1,14 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { AuthRequest } from '../middlewares/authMiddleware';
 
 const prisma = new PrismaClient();
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
-    const userRole = (req as any).user?.role;
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+    const userRole = authReq.user?.role;
 
     if (!userId || userRole !== 'DOCTOR') {
       return res.status(403).json({ message: 'Unauthorized access' });
@@ -79,8 +81,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         { patient: { firstName: "Priya", lastName: "Singh" }, date: new Date(new Date().getTime() + 1000*60*60*4), type: "In-Person", status: "Confirmed" }
       ]
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Dashboard Stats Error:', error);
-    return res.status(500).json({ message: 'Internal server error', error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return res.status(500).json({ message: 'Internal server error', error: errorMessage });
   }
 };

@@ -1,174 +1,236 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Bot, FileText, Sparkles, AlertCircle } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Bot, Send, User, AlertTriangle, Sparkles, Copy, RotateCcw, Trash2, ShieldAlert } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  isTyping?: boolean;
+}
 
 export default function AIAssistantPage() {
-  const [formData, setFormData] = useState({ patientName: "", age: "", symptoms: "" });
-  const [isLoading, setIsLoading] = useState(false);
-  const [prescription, setPrescription] = useState<any>(null);
-  const [error, setError] = useState("");
+  const { user } = useAuth(false);
+  const role = user?.role?.toLowerCase() || 'patient';
+  const isPatient = role === 'patient';
 
-  const generatePrescription = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    setPrescription(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${API_URL}/api/ai/generate-prescription`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+  const patientTemplates = [
+    "Explain my recent blood report",
+    "Symptom Checker",
+    "Explain my prescription",
+    "How to prepare for my upcoming appointment?"
+  ];
 
-      const data = await res.json();
+  const doctorTemplates = [
+    "Generate SOAP Note Draft",
+    "Summarize Patient History",
+    "Consultation Summary",
+    "Check Drug Interactions"
+  ];
+
+  const templates = isPatient ? patientTemplates : doctorTemplates;
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleSend = (text: string = inputValue) => {
+    if (!text.trim() || isProcessing) return;
+
+    const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: text };
+    setMessages(prev => [...prev, newUserMsg]);
+    setInputValue("");
+    setIsProcessing(true);
+
+    // Add typing indicator message
+    const typingId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, { id: typingId, role: "assistant", content: "", isTyping: true }]);
+
+    // Simulate network delay and streaming response
+    setTimeout(() => {
+      let responseText = "I am a mocked AI assistant. In a real environment, I would securely connect to the NexHeal AI backend to provide insights on your query: " + text;
       
-      if (!res.ok) throw new Error(data.message || "Failed to generate AI Prescription");
-      
-      setPrescription(data);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+      if (text.includes("Symptom Checker")) {
+        responseText = "I can help analyze your symptoms. Please list what you are experiencing. Note: I cannot diagnose conditions, but I can suggest urgency levels.";
+      } else if (text.includes("SOAP Note Draft")) {
+        responseText = "**Subjective:** Patient reports mild fever.\n**Objective:** Temp 99.8F.\n**Assessment:** Viral URI suspected.\n**Plan:** Rest and fluids. \n\n*Note: This is an AI-generated draft.*";
+      }
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === typingId ? { id: typingId, role: "assistant", content: responseText, isTyping: false } : msg
+      ));
+      setIsProcessing(false);
+    }, 1500);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+  };
+
+  const regenerateLast = () => {
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMsg) {
+      setMessages(prev => prev.filter(m => m.id !== messages[messages.length - 1].id));
+      handleSend(lastUserMsg.content);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center">
-            <Sparkles className="w-6 h-6 mr-2 text-purple-600" />
-            AI Prescription Assistant
-          </h2>
-          <p className="text-slate-500">Automatically generate accurate draft prescriptions based on symptoms.</p>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto">
+      {/* Safety Disclaimer Banner */}
+      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 flex items-start gap-3 mb-4 shrink-0">
+        <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-sm text-amber-800 dark:text-amber-400 font-medium">
+          This assistant provides informational support only. It is not a medical diagnosis and does not replace qualified healthcare professionals.
+        </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Input Form */}
-        <Card className="border-t-4 border-t-purple-600 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Bot className="w-5 h-5 mr-2 text-purple-600" /> Input Patient Data
+      <Card className="flex-1 flex flex-col shadow-sm border-slate-200 dark:border-slate-800 overflow-hidden">
+        <CardHeader className="border-b dark:border-slate-800 py-4 px-6 flex flex-row items-center justify-between shrink-0">
+          <div>
+            <CardTitle className="flex items-center text-lg">
+              <Sparkles className="w-5 h-5 mr-2 text-primary" />
+              NexHeal AI Copilot
             </CardTitle>
-            <CardDescription>Enter the patient's symptoms reported during the consultation.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={generatePrescription} className="space-y-4">
-              {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm border border-red-100">{error}</div>}
-              
-              <div className="grid grid-cols-3 gap-4">
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="patientName">Patient Name</Label>
-                  <Input 
-                    id="patientName" 
-                    placeholder="e.g. Rahul Sharma" 
-                    value={formData.patientName}
-                    onChange={(e) => setFormData({...formData, patientName: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
-                  <Input 
-                    id="age" 
-                    type="number"
-                    placeholder="32" 
-                    value={formData.age}
-                    onChange={(e) => setFormData({...formData, age: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="symptoms">Symptoms & Doctor's Notes</Label>
-                <textarea 
-                  id="symptoms"
-                  className="flex min-h-[120px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Patient reports high fever (102F) since 3 days, accompanied by severe dry cough and slight headache. No history of asthma."
-                  value={formData.symptoms}
-                  onChange={(e) => setFormData({...formData, symptoms: e.target.value})}
-                  required
-                ></textarea>
-              </div>
+            <CardDescription className="text-xs mt-1">
+              {isPatient ? "Your personal health assistant" : "Clinical intelligence assistant"}
+            </CardDescription>
+          </div>
+          {messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearChat} className="text-muted-foreground">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear Chat
+            </Button>
+          )}
+        </CardHeader>
 
-              <Button type="submit" disabled={isLoading} className="w-full bg-purple-600 hover:bg-purple-700 h-11">
-                {isLoading ? (
-                  <span className="flex items-center"><Sparkles className="w-4 h-4 mr-2 animate-spin" /> Analyzing Data...</span>
-                ) : (
-                  <span className="flex items-center"><Sparkles className="w-4 h-4 mr-2" /> Generate AI Prescription</span>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* AI Output Result */}
-        <Card className={`shadow-lg border-2 ${prescription ? 'border-emerald-500' : 'border-slate-200 border-dashed'}`}>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-slate-700" /> Generated Draft
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!prescription ? (
-              <div className="h-64 flex flex-col items-center justify-center text-slate-400">
-                <FileText className="w-16 h-16 mb-4 opacity-20" />
-                <p>Output will appear here</p>
+        <CardContent className="flex-1 p-0 overflow-hidden flex flex-col relative bg-slate-50/50 dark:bg-slate-900/20">
+          <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollRef}>
+            {messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-6 pt-12">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
+                  <Bot className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">How can I help you today?</h3>
+                  <p className="text-muted-foreground text-sm mt-2 max-w-sm mx-auto">
+                    Select a quick action below or type your medical question in the chat box.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl mt-4">
+                  {templates.map((template, idx) => (
+                    <Button 
+                      key={idx} 
+                      variant="outline" 
+                      className="h-auto py-3 px-4 justify-start text-left whitespace-normal text-sm hover:bg-primary/5 hover:text-primary hover:border-primary/30"
+                      onClick={() => handleSend(template)}
+                    >
+                      {template}
+                    </Button>
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="border-b border-slate-200 pb-4">
-                  <h3 className="font-bold text-xl text-slate-800">{prescription.patientName} <span className="text-sm font-normal text-slate-500 ml-2">({prescription.age} yrs)</span></h3>
-                  <p className="text-emerald-600 font-medium mt-1">AI Diagnosis: {prescription.diagnosis}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-slate-700 mb-3 flex items-center">
-                    Prescribed Medicines
-                  </h4>
-                  <ul className="space-y-3">
-                    {prescription.medicines.map((med: any, idx: number) => (
-                      <li key={idx} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <p className="font-bold text-blue-700 text-sm">{med.name}</p>
-                        <div className="flex text-xs text-slate-600 mt-1 space-x-4">
-                          <span><strong className="text-slate-500 font-medium">Dose:</strong> {med.dosage}</span>
-                          <span><strong className="text-slate-500 font-medium">Freq:</strong> {med.frequency}</span>
-                          <span><strong className="text-slate-500 font-medium">Dur:</strong> {med.duration}</span>
+              <div className="space-y-6 pb-4">
+                <AnimatePresence initial={false}>
+                  {messages.map((msg) => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+                    >
+                      <Avatar className={`w-8 h-8 shrink-0 ${msg.role === 'user' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-primary/10'}`}>
+                        {msg.role === 'user' ? (
+                          <User className="w-4 h-4 m-auto text-slate-600 dark:text-slate-300" />
+                        ) : (
+                          <Bot className="w-4 h-4 m-auto text-primary" />
+                        )}
+                      </Avatar>
+                      
+                      <div className={`flex flex-col gap-2 max-w-[85%] md:max-w-[75%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div 
+                          className={`rounded-2xl px-4 py-3 text-sm ${
+                            msg.role === 'user' 
+                              ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-tl-sm shadow-sm'
+                          }`}
+                        >
+                          {msg.isTyping ? (
+                            <div className="flex gap-1.5 py-1.5 items-center">
+                              <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                              <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                              <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" />
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap leading-relaxed">
+                              {msg.content}
+                            </div>
+                          )}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                  <h4 className="font-semibold text-blue-800 text-sm mb-1">Doctor's Advice / Diet</h4>
-                  <p className="text-sm text-blue-700">{prescription.advice}</p>
-                </div>
-                
-                <div className="flex items-start bg-amber-50 p-3 rounded-md text-amber-800 text-xs mt-4">
-                  <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
-                  <p>{prescription.disclaimer}</p>
-                </div>
+                        
+                        {msg.role === 'assistant' && !msg.isTyping && (
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" style={{ opacity: 1 }}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(msg.content)} title="Copy">
+                              <Copy className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={regenerateLast} title="Regenerate">
+                              <RotateCcw className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
-          </CardContent>
-          {prescription && (
-            <CardFooter className="flex space-x-3 bg-slate-50 border-t border-slate-100 mt-auto">
-              <Button variant="outline" className="flex-1">Edit</Button>
-              <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700">Approve & Send</Button>
-            </CardFooter>
-          )}
-        </Card>
-      </div>
+          </ScrollArea>
+        </CardContent>
+
+        <CardFooter className="p-4 border-t dark:border-slate-800 bg-white dark:bg-[#09090b] shrink-0">
+          <form 
+            className="flex w-full items-end gap-2"
+            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+          >
+            <div className="relative flex-1">
+              <Input 
+                placeholder="Ask NexHeal AI..." 
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isProcessing}
+                className="pr-12 rounded-xl border-slate-300 dark:border-slate-700 focus-visible:ring-primary h-12"
+              />
+            </div>
+            <Button 
+              type="submit" 
+              disabled={!inputValue.trim() || isProcessing} 
+              size="icon"
+              className="h-12 w-12 rounded-xl shrink-0 bg-primary hover:bg-primary/90"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          </form>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

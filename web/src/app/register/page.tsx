@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { authService } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -39,33 +41,35 @@ export default function RegisterPage() {
         throw new Error(data.message || "Registration failed");
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data));
+      authService.setSession(data.token, data);
       
+      toast.success("Account created successfully!");
       if (data.role === "DOCTOR") {
         router.push("/dashboard");
       } else {
         router.push("/");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "An unknown error occurred";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
-      <Card className="w-full max-w-lg shadow-2xl border-t-4 border-t-blue-600">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4 transition-colors">
+      <Card className="w-full max-w-lg shadow-2xl border-t-4 border-t-primary">
         <CardHeader className="space-y-2 text-center">
-          <CardTitle className="text-3xl font-extrabold tracking-tight text-blue-900">Create an Account</CardTitle>
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">Create an Account</CardTitle>
           <CardDescription>
             Join NexHeal to manage your healthcare seamlessly.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleRegister} className="space-y-4">
-            {error && <div className="p-3 text-sm font-medium text-red-600 bg-red-100 rounded-lg">{error}</div>}
+          <form onSubmit={handleRegister} className="space-y-4" aria-label="Registration form">
+            {error && <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 rounded-lg" role="alert" aria-live="assertive">{error}</div>}
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -118,24 +122,24 @@ export default function RegisterPage() {
               <Label htmlFor="role">I am a...</Label>
               <select 
                 id="role"
-                className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={formData.role}
                 onChange={(e) => setFormData({...formData, role: e.target.value})}
               >
-                <option value="PATIENT">Patient</option>
-                <option value="DOCTOR">Doctor</option>
+                <option value="PATIENT" className="dark:bg-background">Patient</option>
+                <option value="DOCTOR" className="dark:bg-background">Doctor</option>
               </select>
             </div>
             
-            <Button type="submit" disabled={isLoading} className="w-full h-11 text-md font-semibold bg-blue-600 hover:bg-blue-700 transition-all mt-4">
+            <Button type="submit" disabled={isLoading} className="w-full h-11 text-md font-semibold transition-all mt-4">
               {isLoading ? "Creating account..." : "Register"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:text-blue-800 font-semibold hover:underline">
+            <Link href="/login" className="text-primary hover:text-primary/80 font-semibold hover:underline">
               Sign in here
             </Link>
           </p>

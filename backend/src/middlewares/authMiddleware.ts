@@ -15,7 +15,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_nexheal_2026') as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_nexheal_2026') as { id: string };
 
       // Ensure user still exists
       const user = await prisma.user.findUnique({

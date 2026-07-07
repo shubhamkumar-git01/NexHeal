@@ -50,8 +50,9 @@ export const registerUser = async (req: Request, res: Response) => {
       role: user.role,
       token: generateToken(user.id, user.role),
     });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: errorMessage });
   }
 };
 
@@ -77,7 +78,8 @@ export const loginUser = async (req: Request, res: Response) => {
       res.status(401);
       throw new Error('Invalid email or password');
     }
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: errorMessage });
   }
 };

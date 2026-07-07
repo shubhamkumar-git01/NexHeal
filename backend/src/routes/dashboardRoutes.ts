@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { getDashboardStats } from '../controllers/dashboardController';
-import { authMiddleware } from '../middleware/authMiddleware';
+import { protect } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // Protect all dashboard routes with authMiddleware
-router.use(authMiddleware);
+router.use(protect);
 
 router.get('/stats', getDashboardStats);
 

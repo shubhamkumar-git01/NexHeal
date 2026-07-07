@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import Peer from "peerjs";
-import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
 
 export default function VideoCallPage({ params }: { params: Promise<{ roomId: string }> }) {
