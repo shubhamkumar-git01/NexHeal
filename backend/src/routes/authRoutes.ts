@@ -12,11 +12,8 @@ router.get("/fix-db", async (req, res) => {
   const { execSync } = require('child_process');
   try {
     let dbUrl = process.env.DATABASE_URL || "";
-    const poolerMatch = dbUrl.match(/postgresql:\/\/postgres\.([^:]+):([^@]+)@[^\/]+\/postgres/);
-    if (poolerMatch) {
-      const projectRef = poolerMatch[1];
-      const password = poolerMatch[2];
-      dbUrl = `postgresql://postgres:${password}@db.${projectRef}.supabase.co:5432/postgres`;
+    if (dbUrl.includes(':6543')) {
+      dbUrl = dbUrl.replace(':6543', ':5432');
     }
     const env = { ...process.env, DATABASE_URL: dbUrl, DIRECT_URL: dbUrl };
     const stdout = execSync('npx prisma db push --accept-data-loss', { env, encoding: 'utf-8' });

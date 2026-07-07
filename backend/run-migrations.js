@@ -6,15 +6,12 @@ async function runMigrations() {
     
     let dbUrl = process.env.DATABASE_URL || "";
     
-    // Convert Supabase pooler URL to direct IPv6 URL to bypass pgbouncer issues
-    // Example pooler: postgresql://postgres.fnztdzgpvjzfufldhcsw:PASSWORD@aws-1...pooler.supabase.com:6543/postgres
-    // Target direct: postgresql://postgres:PASSWORD@db.fnztdzgpvjzfufldhcsw.supabase.co:5432/postgres
-    const poolerMatch = dbUrl.match(/postgresql:\/\/postgres\.([^:]+):([^@]+)@[^\/]+\/postgres/);
-    if (poolerMatch) {
-      const projectRef = poolerMatch[1];
-      const password = poolerMatch[2];
-      dbUrl = `postgresql://postgres:${password}@db.${projectRef}.supabase.co:5432/postgres`;
-      console.log("Converted pooler URL to direct IPv6 URL for Prisma migration.");
+    // Fix for Supabase IPv6 direct connection issue on Render (which lacks IPv4 outbound)
+    // Supabase provides a Session pooler on port 5432 which supports IPv4 and allows migrations!
+    // So we just change port 6543 (transaction) to 5432 (session) and keep the pooler host!
+    if (dbUrl.includes(':6543')) {
+      dbUrl = dbUrl.replace(':6543', ':5432');
+      console.log("Converted pooler URL port from 6543 to 5432 for Prisma migration.");
     }
     
     const env = { 
