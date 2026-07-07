@@ -50,7 +50,7 @@ app.use(helmet({
 }));
 
 // CORS Hardening
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'https://nex-heal.vercel.app'];
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,

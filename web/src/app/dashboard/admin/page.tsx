@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { ShieldAlert, Users, Activity, BarChart3, Settings, AlertTriangle, Ambulance, Bed, HeartPulse, Pill, TestTube2, Stethoscope as OT, Server, BrainCircuit, Globe, RefreshCcw, Download, Building2, Clock, History, Percent } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchApi } from "@/lib/api";
 import DashboardLoading from "../loading";
 import { cn } from "@/lib/utils";
 
@@ -50,9 +51,7 @@ export default function AdminPortalPage() {
         "Infrastructure": "infrastructure"
       };
       
-      const res = await fetch(`http://localhost:5000/api/v1/analytics/${endpointMap[tab]}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
+      const res = await fetchApi(`/api/analytics/${endpointMap[tab]}`);
       const data = await res.json();
       setAnalyticsData(data);
     } catch (e) {
@@ -64,12 +63,8 @@ export default function AdminPortalPage() {
 
   const handleExport = async (format: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/v1/analytics/export`, {
+      const res = await fetchApi(`/api/analytics/export`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` 
-        },
         body: JSON.stringify({ type: activeTab, format, filters: {} })
       });
       const data = await res.json();

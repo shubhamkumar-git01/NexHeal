@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, CalendarClock, UserPlus, HeartPulse, FileText, Bot } from "lucide-react";
 
 import { motion } from "framer-motion";
-import { authService } from "@/lib/auth";
-import { UserProfile } from "@/lib/auth";
+import { authService, UserProfile } from "@/lib/auth";
+import { fetchApi } from "@/lib/api";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AlertCard } from "@/components/dashboard/AlertCard";
 import { AppointmentItem } from "@/components/dashboard/AppointmentItem";
@@ -39,12 +39,7 @@ export function DoctorDashboard({ user, logout }: { user: UserProfile | null, lo
         const token = authService.getToken();
         if (!token) return;
 
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-        const res = await fetch(`${API_URL}/api/dashboard/stats`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
+        const res = await fetchApi(`/api/dashboard/stats`);
 
         if (res.ok) {
           const data = await res.json();

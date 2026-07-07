@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authService } from "@/lib/auth";
+import { fetchApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,24 +24,23 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const res = await fetchApi(`/api/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
+      const payload = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Invalid credentials");
+        throw new Error(payload.error || payload.message || "Invalid credentials");
       }
 
-      authService.setSession(data.token, data);
+      const responseData = payload.data;
+      authService.setSession(responseData.accessToken, responseData.user);
       
       toast.success("Successfully logged in!");
       // Redirect based on role
-      if (data.role === "DOCTOR") {
+      if (responseData.user?.role === "DOCTOR") {
         router.push("/dashboard");
       } else {
         router.push("/");

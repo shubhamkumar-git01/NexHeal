@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authService } from "@/lib/auth";
+import { fetchApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,23 +29,22 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const res = await fetchApi(`/api/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      const data = await res.json();
+      const payload = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(payload.error || payload.message || "Registration failed");
       }
 
-      authService.setSession(data.token, data);
+      const responseData = payload.data;
+      authService.setSession(responseData.accessToken, responseData.user);
       
       toast.success("Account created successfully!");
-      if (data.role === "DOCTOR") {
+      if (responseData.user?.role === "DOCTOR") {
         router.push("/dashboard");
       } else {
         router.push("/");
