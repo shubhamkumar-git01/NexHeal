@@ -23,10 +23,11 @@ async function runMigrations() {
       DIRECT_URL: dbUrl 
     };
 
-    execSync('npx prisma db push --accept-data-loss', {
+    const stdout = execSync('npx prisma db push --accept-data-loss', {
       env: env,
-      stdio: 'inherit'
+      encoding: 'utf-8'
     });
+    console.log(stdout);
     
     console.log("Prisma DB Push completed successfully.");
   } catch (e) {

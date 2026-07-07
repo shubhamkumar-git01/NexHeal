@@ -21,7 +21,7 @@ router.get("/fix-db", async (req, res) => {
     const env = { ...process.env, DATABASE_URL: dbUrl, DIRECT_URL: dbUrl };
     const stdout = execSync('npx prisma db push --accept-data-loss', { env, encoding: 'utf-8' });
     res.json({ success: true, stdout });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, error: error.message, stdout: error.stdout?.toString(), stderr: error.stderr?.toString() });
   }
 });
