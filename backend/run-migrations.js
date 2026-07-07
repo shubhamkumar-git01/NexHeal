@@ -2,20 +2,24 @@ const { execSync } = require('child_process');
 
 async function runMigrations() {
   try {
-    console.log("Running Prisma DB Push...");
+    console.log("Running Prisma DB Push on startup...");
     
-    // Create a modified environment specifically for the migration
     let dbUrl = process.env.DATABASE_URL || "";
     
-    // Workaround for Prisma bug with Supavisor pooler (stripping project ref)
-    if (dbUrl.includes('pgbouncer=true')) {
-      dbUrl = dbUrl.replace('?pgbouncer=true', '').replace('&pgbouncer=true', '');
+    // Convert Supabase pooler URL to direct IPv6 URL to bypass pgbouncer issues
+    // Example pooler: postgresql://postgres.fnztdzgpvjzfufldhcsw:PASSWORD@aws-1...pooler.supabase.com:6543/postgres
+    // Target direct: postgresql://postgres:PASSWORD@db.fnztdzgpvjzfufldhcsw.supabase.co:5432/postgres
+    const poolerMatch = dbUrl.match(/postgresql:\/\/postgres\.([^:]+):([^@]+)@[^\/]+\/postgres/);
+    if (poolerMatch) {
+      const projectRef = poolerMatch[1];
+      const password = poolerMatch[2];
+      dbUrl = `postgresql://postgres:${password}@db.${projectRef}.supabase.co:5432/postgres`;
+      console.log("Converted pooler URL to direct IPv6 URL for Prisma migration.");
     }
     
     const env = { 
       ...process.env, 
       DATABASE_URL: dbUrl, 
-      // Force direct URL to be the same as DB URL but without pgbouncer
       DIRECT_URL: dbUrl 
     };
 
