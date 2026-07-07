@@ -1,11 +1,12 @@
 import { authService } from "./auth";
 
 export const getApiUrl = (): string => {
+  if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production") {
+    // Bulletproof: Force the real backend URL in Vercel production to override any bad env vars
+    return "https://nexheal.onrender.com";
+  }
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
-  }
-  if (process.env.NODE_ENV === "production") {
-    return "https://nexheal.onrender.com";
   }
   return "http://localhost:5000";
 };
