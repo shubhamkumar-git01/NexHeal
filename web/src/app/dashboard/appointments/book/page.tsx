@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,27 +11,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, MapPin, Video, Building2, UserPlus, Calendar as CalendarIcon, CheckCircle2, ChevronLeft, ChevronRight, Stethoscope, AlertTriangle } from "lucide-react";
+import { Search, MapPin, Video, Building2, UserPlus, Calendar as CalendarIcon, CheckCircle2, ChevronLeft, ChevronRight, Stethoscope, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function BookAppointmentPage() {
+function BookAppointmentContent() {
   const { user } = useAuth(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   
-  const [step, setStep] = useState(1);
+  const initialSpecialty = searchParams.get("specialty")?.toLowerCase().includes("cardio") ? "cardio" 
+    : searchParams.get("specialty")?.toLowerCase().includes("derma") ? "derma" 
+    : searchParams.get("specialty") ? "general" 
+    : "";
+
+  const [step, setStep] = useState(searchParams.get("specialty") ? 2 : 1);
   const [date, setDate] = useState<Date | undefined>(new Date());
   
   // Form State
-  const [consultType, setConsultType] = useState<"video" | "clinic" | null>(null);
-  const [specialization, setSpecialization] = useState("");
+  const [consultType, setConsultType] = useState<"video" | "clinic" | null>(searchParams.get("specialty") ? "video" : null);
+  const [specialization, setSpecialization] = useState(initialSpecialty);
   const [doctorId, setDoctorId] = useState<number | null>(null);
   const [timeSlot, setTimeSlot] = useState("");
-  const [reason, setReason] = useState("");
-  const [priority, setPriority] = useState("Routine");
+  const [reason, setReason] = useState(searchParams.get("reason") || "");
+  const [priority, setPriority] = useState(searchParams.get("urgency") === "CRITICAL" || searchParams.get("urgency") === "HIGH" ? "Emergency" : "Routine");
   
   const [isConfirming, setIsConfirming] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -349,5 +355,13 @@ export default function BookAppointmentPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BookAppointmentPage() {
+  return (
+    <Suspense fallback={<div className="flex h-[50vh] items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+      <BookAppointmentContent />
+    </Suspense>
   );
 }

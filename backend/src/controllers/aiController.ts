@@ -59,3 +59,29 @@ export const generatePrescription = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+import { AIService } from '../services/aiService';
+
+// @desc    Triage patient symptoms using Gemini AI
+// @route   POST /api/ai/triage
+// @access  Public or Private (depending on implementation)
+export const triagePatient = async (req: Request, res: Response) => {
+  try {
+    const { symptoms } = req.body;
+
+    if (!symptoms) {
+      res.status(400).json({ success: false, error: 'Please provide your symptoms' });
+      return;
+    }
+
+    const aiRecommendation = await AIService.patientTriage(symptoms);
+    
+    res.status(200).json({
+      success: true,
+      recommendation: aiRecommendation
+    });
+  } catch (error: any) {
+    console.error("[AIController] Triage Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

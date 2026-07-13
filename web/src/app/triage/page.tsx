@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { fetchApi } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -45,27 +46,28 @@ export default function AITriagePage() {
     setLoading(true);
 
     try {
-      // TODO: Connect to real AI backend
-      // const res = await fetchApi('/ai/triage', { method: 'POST', body: JSON.stringify({ symptoms: input }) });
+      const res: any = await fetchApi('/ai/triage', { 
+        method: 'POST', 
+        body: JSON.stringify({ symptoms: input }) 
+      });
       
-      // Mocking AI Response for now
-      setTimeout(() => {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: "ai",
-          content: "Based on what you described, this requires medical attention.",
-          recommendation: {
-            specialty: "Cardiologist",
-            urgency: "HIGH",
-            advice: "Please consult a cardiologist immediately. Do not ignore severe chest pain."
-          }
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        setLoading(false);
-      }, 1500);
-
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: res.recommendation?.advice || "Please consult a doctor.",
+        recommendation: res.recommendation
+      };
+      
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (e) {
       console.error(e);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        content: "Sorry, I am having trouble connecting to my systems right now. Please try again later."
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setLoading(false);
     }
   };
@@ -125,7 +127,7 @@ export default function AITriagePage() {
                       </div>
                     </div>
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700 mt-2">
-                      <Button onClick={() => router.push(`/dashboard/appointments/book?specialty=${msg.recommendation?.specialty}`)} className="w-full">
+                      <Button onClick={() => router.push(`/dashboard/appointments/book?specialty=${msg.recommendation?.specialty}&urgency=${msg.recommendation?.urgency}&reason=${encodeURIComponent(msg.content)}`)} className="w-full">
                         Book {msg.recommendation.specialty} Now
                       </Button>
                     </div>

@@ -198,6 +198,8 @@ model User {
   medicalTimeline       MedicalTimelineEvent[]      @relation("PatientTimeline")
   LabOrder              LabOrder[]
   communityRequests     CommunityRequest[]          @relation("CommunityRequests")
+  ehrTokensGiven        EHRAccessToken[]            @relation("PatientTokens")
+  ehrTokensReceived     EHRAccessToken[]            @relation("DoctorTokens")
 }
 
 /// Long-lived sessions for the user.
@@ -1253,6 +1255,19 @@ model NGOReliefKit {
   contents     Json
   quantity     Int
   createdAt    DateTime   @default(now())
+}
+
+/// Token for granting EHR access to a doctor
+model EHRAccessToken {
+  id          String   @id @default(uuid())
+  token       String   @unique // Short code like "ABC-123"
+  patientId   String
+  patient     User     @relation("PatientTokens", fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId    String?  // Nullable, if not targeted to a specific doctor yet
+  doctor      User?    @relation("DoctorTokens", fields: [doctorId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 model NGODistributionHistory {
