@@ -50,42 +50,37 @@ export default function EmergencyPage() {
   ];
 
   useEffect(() => {
-    // Simulate API / WebSocket hook fetch
-    setTimeout(() => {
-      if (!isPatient) {
-        setIncidents([
-          { id: "EMG-102", patient: "Rahul Sharma", reason: "Suspected Heart Attack", type: "MEDICAL", priority: "CRITICAL", status: "EN_ROUTE", time: "10 mins ago", location: "Sector 4, City Center" },
-          { id: "EMG-101", patient: "Sneha Patel", reason: "Car Accident", type: "ACCIDENT", priority: "HIGH", status: "ASSIGNED", time: "2 mins ago", location: "Highway 12" },
-          { id: "EMG-104", patient: "Ravi Kumar", reason: "Robbery", type: "POLICE", priority: "HIGH", status: "CREATED", time: "Just now", location: "Street 5, Downtown" },
-        ]);
-      }
-      setLoading(false);
-    }, 800);
+    if (!isPatient) {
+      setIncidents([
+        { id: "EMG-102", patient: "Rahul Sharma", reason: "Suspected Heart Attack", type: "MEDICAL", priority: "CRITICAL", status: "EN_ROUTE", time: "10 mins ago", location: "Sector 4, City Center" },
+        { id: "EMG-101", patient: "Sneha Patel", reason: "Car Accident", type: "ACCIDENT", priority: "HIGH", status: "ASSIGNED", time: "2 mins ago", location: "Highway 12" },
+        { id: "EMG-104", patient: "Ravi Kumar", reason: "Robbery", type: "POLICE", priority: "HIGH", status: "CREATED", time: "Just now", location: "Street 5, Downtown" },
+      ]);
+    }
+    setLoading(false);
   }, [isPatient]);
 
   const handleSosTrigger = () => setIsSosDialogOpen(true);
 
-  const handleSosConfirm = () => {
+  const handleSosConfirm = async () => {
     if (!sosReason) return;
     setIsSosSubmitting(true);
-    // Simulate API POST /api/emergency/trigger
-    setTimeout(() => {
-      setIsSosSubmitting(false);
-      setIsSosDialogOpen(false);
-      setActiveIncident({
-        id: "EMG-105",
-        reason: sosReason,
-        priority: "HIGH", // AI predicted
-        status: "CREATED",
-        timeline: [
-          { status: "CREATED", time: new Date().toLocaleTimeString(), completed: true, notes: "SOS Triggered" },
-          { status: "ACKNOWLEDGED", time: "", completed: false },
-          { status: "ASSIGNED", time: "", completed: false },
-          { status: "EN_ROUTE", time: "", completed: false },
-          { status: "ARRIVED", time: "", completed: false },
-        ]
-      });
-    }, 1500);
+    // Instant simulation instead of setTimeout
+    setIsSosSubmitting(false);
+    setIsSosDialogOpen(false);
+    setActiveIncident({
+      id: "EMG-105",
+      reason: sosReason,
+      priority: "HIGH", // AI predicted
+      status: "CREATED",
+      timeline: [
+        { status: "CREATED", time: new Date().toLocaleTimeString(), completed: true, notes: "SOS Triggered" },
+        { status: "ACKNOWLEDGED", time: "", completed: false },
+        { status: "ASSIGNED", time: "", completed: false },
+        { status: "EN_ROUTE", time: "", completed: false },
+        { status: "ARRIVED", time: "", completed: false },
+      ]
+    });
   };
 
   const cancelSos = () => setActiveIncident(null);

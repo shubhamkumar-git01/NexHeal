@@ -49,7 +49,8 @@ export default function VolunteersPage() {
   ];
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 800);
+    // Instant mock data load
+    setLoading(false);
   }, []);
 
   if (loading) return <DashboardLoading />;

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   ArrowRight, HeartPulse, Activity, ShieldCheck, Siren, Sparkles, 
   Stethoscope, Users, Building2, CalendarCheck, FileText, Bot, 
@@ -46,13 +47,13 @@ export function LandingPage() {
         </div>
         
         <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600 dark:text-slate-300">
-          <Link href="#features" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Features</Link>
-          <Link href="#how-it-works" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">How it Works</Link>
-          <Link href="#ai" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">AI Copilot</Link>
-          <Link href="#emergency" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Emergency</Link>
+          <a href="#features" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Features</a>
+          <a href="#how-it-works" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">How it Works</a>
+          <a href="#ai" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">AI Copilot</a>
         </div>
 
         <div className="flex items-center space-x-4">
+          <ThemeToggle />
           <Link href="/login" className="hidden sm:block">
             <Button variant="ghost" className="font-semibold">Sign In</Button>
           </Link>
@@ -107,57 +108,117 @@ export function LandingPage() {
         </motion.div>
 
         <motion.div 
-          className="flex-1 relative w-full max-w-lg lg:max-w-none"
-          initial={{ opacity: 0, scale: 0.9, rotate: -2 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
+          className="flex-1 relative w-full h-[500px] lg:h-[600px] max-w-lg lg:max-w-none perspective-1000"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1 }}
         >
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-900 p-2 transform rotate-1 hover:rotate-0 transition-transform duration-500">
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-indigo-600/20 animate-pulse"></div>
-            <div className="relative bg-slate-100 dark:bg-[#09090b] rounded-2xl aspect-[4/3] flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-800">
-              {/* Abstract Dashboard Representation */}
-              <div className="absolute inset-4 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-32 h-8 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
-                  <div className="flex gap-2"><div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50"></div><div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800"></div></div>
+          {/* Background Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-blue-500/20 dark:bg-blue-600/20 blur-[100px] rounded-full pointer-events-none"></div>
+
+          {/* Center Main Dashboard Glass Card */}
+          <motion.div 
+            initial={{ opacity: 0, y: 50, rotateX: 10, rotateY: -10 }}
+            animate={{ opacity: 1, y: 0, rotateX: 0, rotateY: 0 }}
+            transition={{ duration: 1, type: "spring", bounce: 0.4 }}
+            className="absolute top-[10%] left-[5%] right-[5%] bottom-[10%] bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/50 dark:border-slate-700/50 rounded-3xl shadow-2xl p-6 flex flex-col gap-4 overflow-hidden z-10"
+          >
+            {/* Top Bar Mock */}
+            <div className="flex items-center justify-between pb-4 border-b border-white/20 dark:border-slate-700/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                <div className="w-24 h-4 bg-slate-200/80 dark:bg-slate-800/80 rounded-full"></div>
+              </div>
+              <div className="flex gap-2">
+                <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800/80"></div>
+                <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800/80"></div>
+              </div>
+            </div>
+            
+            {/* Main Content Area */}
+            <div className="flex-1 flex gap-4">
+              <div className="w-1/3 flex flex-col gap-4">
+                <div className="flex-1 bg-white/60 dark:bg-slate-800/60 rounded-2xl p-4 flex flex-col justify-end relative overflow-hidden">
+                  <div className="absolute top-4 left-4 w-8 h-8 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center">
+                    <Activity className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="w-full h-1/2 bg-gradient-to-t from-emerald-500/20 to-transparent rounded-t-lg mt-auto relative">
+                    <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="absolute bottom-0 w-full h-full text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M0,10 Q20,20 40,5 T60,15 T80,5 T100,10" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="h-24 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-end"><div className="w-16 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mb-2"></div><div className="w-24 h-4 bg-emerald-100 dark:bg-emerald-900/30 rounded-full"></div></div>
-                  <div className="h-24 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-end"><div className="w-16 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mb-2"></div><div className="w-20 h-4 bg-blue-100 dark:bg-blue-900/30 rounded-full"></div></div>
-                  <div className="h-24 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-end"><div className="w-16 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mb-2"></div><div className="w-28 h-4 bg-purple-100 dark:bg-purple-900/30 rounded-full"></div></div>
-                </div>
-                <div className="flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-                   <div className="flex items-center justify-center h-full text-slate-300 dark:text-slate-700">
-                     <Activity className="w-16 h-16" />
-                   </div>
+                <div className="flex-1 bg-white/60 dark:bg-slate-800/60 rounded-2xl p-4"></div>
+              </div>
+              <div className="w-2/3 bg-white/60 dark:bg-slate-800/60 rounded-2xl p-4 relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
+                <div className="w-3/4 h-6 bg-slate-200/80 dark:bg-slate-700/80 rounded-full mb-6"></div>
+                <div className="space-y-3">
+                  <div className="w-full h-12 bg-white/50 dark:bg-slate-700/50 rounded-xl"></div>
+                  <div className="w-full h-12 bg-white/50 dark:bg-slate-700/50 rounded-xl"></div>
+                  <div className="w-full h-12 bg-white/50 dark:bg-slate-700/50 rounded-xl"></div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          {/* Floating Elements */}
-          <div className="absolute -top-6 -right-6 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 animate-bounce [animation-duration:3s]">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                <CheckCircle2 className="w-5 h-5" />
+          </motion.div>
+
+          {/* Floating Element 1: AI Copilot */}
+          <motion.div 
+            animate={{ y: [0, -15, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -left-10 top-[20%] bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-20 w-64 backdrop-blur-xl bg-opacity-90 dark:bg-opacity-90"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
+                <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Status</p>
-                <p className="text-sm font-bold">System Healthy</p>
+                <p className="text-xs text-muted-foreground font-medium">NexHeal AI</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Diagnosis Ready</p>
               </div>
             </div>
-          </div>
-          <div className="absolute -bottom-8 -left-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 animate-bounce [animation-duration:4s] [animation-delay:1s]">
+            <div className="bg-slate-100 dark:bg-slate-700/50 p-2 rounded-lg text-[10px] text-slate-600 dark:text-slate-300">
+              Analysis shows 98% probability of viral infection.
+            </div>
+          </motion.div>
+
+          {/* Floating Element 2: Emergency Alert */}
+          <motion.div 
+            animate={{ y: [0, 20, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute -right-8 bottom-[15%] bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-2xl border border-red-100 dark:border-red-900/30 z-20 backdrop-blur-xl bg-opacity-90 dark:bg-opacity-90"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
-                <Siren className="w-5 h-5" />
+              <div className="relative">
+                <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-20"></div>
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600 relative z-10">
+                  <Siren className="w-6 h-6" />
+                </div>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">SOS Active</p>
-                <p className="text-sm font-bold">Volunteer Dispatched</p>
+                <p className="text-xs text-red-500 font-bold tracking-wider">CRITICAL ALERT</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Ambulance Dispatched</p>
               </div>
             </div>
-          </div>
+          </motion.div>
+
+          {/* Floating Element 3: Doctor Appointment */}
+          <motion.div 
+            animate={{ y: [0, 10, 0], x: [0, -10, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute right-4 top-[5%] bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 z-0 backdrop-blur-xl bg-opacity-80"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600">
+                <CalendarCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Dr. Sharma</p>
+                <p className="text-[10px] text-muted-foreground">Confirmed 10:30 AM</p>
+              </div>
+            </div>
+          </motion.div>
+
         </motion.div>
       </section>
 
@@ -367,10 +428,10 @@ export function LandingPage() {
           <div>
             <h4 className="font-bold mb-4">Platform</h4>
             <ul className="space-y-3 text-sm text-slate-500">
-              <li><Link href="#features" className="hover:text-blue-600">Features</Link></li>
-              <li><Link href="#ai" className="hover:text-blue-600">AI Copilot</Link></li>
-              <li><Link href="/login" className="hover:text-blue-600">Patient Portal</Link></li>
-              <li><Link href="/login" className="hover:text-blue-600">Doctor Portal</Link></li>
+              <li><a href="#features" className="hover:text-blue-600 transition-colors">Features</a></li>
+              <li><a href="#ai" className="hover:text-blue-600 transition-colors">AI Copilot</a></li>
+              <li><Link href="/login" className="hover:text-blue-600 transition-colors">Patient Portal</Link></li>
+              <li><Link href="/login" className="hover:text-blue-600 transition-colors">Doctor Portal</Link></li>
             </ul>
           </div>
           <div>

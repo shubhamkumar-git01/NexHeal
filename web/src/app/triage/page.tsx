@@ -104,49 +104,53 @@ export default function AITriagePage() {
               animate={{ opacity: 1, y: 0 }}
               className={`flex gap-4 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === "user" ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200" : "bg-primary text-white"}`}>
-                {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${msg.role === "user" ? "border-blue-100 bg-white dark:border-blue-900/50 dark:bg-slate-800 text-blue-600 dark:text-blue-400" : "border-emerald-100 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"}`}>
+                {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
-              <div className={`max-w-[80%] space-y-3 ${msg.role === "user" ? "items-end" : ""}`}>
-                <div className={`p-4 rounded-2xl ${msg.role === "user" ? "bg-primary text-white rounded-tr-none" : "bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-tl-none shadow-sm"}`}>
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
+              <div className={`max-w-[80%] space-y-3 ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`p-4 rounded-2xl text-[15px] shadow-sm leading-relaxed ${msg.role === "user" ? "bg-blue-600 text-white rounded-tr-sm shadow-blue-600/20" : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-tl-sm text-slate-800 dark:text-slate-200"}`}>
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
                 </div>
                 
                 {msg.recommendation && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Stethoscope className="w-5 h-5 text-primary" />
-                      <span className="font-bold">Recommended Specialist:</span>
-                      <span className="font-medium text-primary">{msg.recommendation.specialty}</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className={`w-5 h-5 mt-0.5 ${getUrgencyColor(msg.recommendation.urgency).split(' ')[0]}`} />
-                      <div>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getUrgencyColor(msg.recommendation.urgency)}`}>
-                          {msg.recommendation.urgency} URGENCY
-                        </span>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">{msg.recommendation.advice}</p>
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col md:flex-row gap-3 mt-2 w-full">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Stethoscope className="w-4 h-4 text-emerald-600" />
+                        <span className="font-semibold text-sm">Suggested Specialty</span>
                       </div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{msg.recommendation.specialty}</p>
                     </div>
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700 mt-2">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className={`w-4 h-4 ${msg.recommendation.urgency === 'CRITICAL' ? 'text-red-600' : msg.recommendation.urgency === 'HIGH' ? 'text-orange-500' : 'text-yellow-500'}`} />
+                        <span className="font-semibold text-sm">Urgency Level</span>
+                      </div>
+                      <p className={`text-sm font-bold ${msg.recommendation.urgency === 'CRITICAL' ? 'text-red-600' : msg.recommendation.urgency === 'HIGH' ? 'text-orange-600' : 'text-yellow-600'}`}>
+                        {msg.recommendation.urgency} URGENCY
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+                {msg.recommendation && (
+                    <div className="pt-2 mt-2">
                       <Button onClick={() => router.push(`/dashboard/appointments/book?specialty=${msg.recommendation?.specialty}&urgency=${msg.recommendation?.urgency}&reason=${encodeURIComponent(msg.content)}`)} className="w-full">
                         Book {msg.recommendation.specialty} Now
                       </Button>
                     </div>
-                  </motion.div>
                 )}
               </div>
             </motion.div>
           ))}
           {loading && (
             <div className="flex gap-4">
-              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-full border-2 border-emerald-100 bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <Bot className="w-5 h-5" />
               </div>
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-tl-none shadow-sm flex items-center gap-1">
-                <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
-                <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-tl-sm shadow-sm flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" />
               </div>
             </div>
           )}
@@ -161,10 +165,10 @@ export default function AITriagePage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="E.g., I've been having a severe headache and dizziness..."
-              className="flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-12 rounded-xl px-4"
+              className="flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-12 rounded-xl px-4 focus-visible:ring-blue-600"
               disabled={loading}
             />
-            <Button type="submit" disabled={!input.trim() || loading} className="h-12 px-6 rounded-xl">
+            <Button type="submit" disabled={!input.trim() || loading} className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
               <Send className="w-4 h-4 mr-2" />
               Send
             </Button>

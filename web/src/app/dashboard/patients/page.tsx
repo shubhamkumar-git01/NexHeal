@@ -21,15 +21,13 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setPatients([
-        { id: "PT-001", name: "Rahul Sharma", age: 34, gender: "Male", lastVisit: "2026-10-12", status: "Active", bloodGroup: "O+" },
-        { id: "PT-002", name: "Priya Singh", age: 28, gender: "Female", lastVisit: "2026-09-28", status: "Active", bloodGroup: "B+" },
-        { id: "PT-003", name: "Amit Kumar", age: 45, gender: "Male", lastVisit: "2026-06-15", status: "Inactive", bloodGroup: "A-" },
-      ]);
-      setLoading(false);
-    }, 1000);
+    // Instant mock data load
+    setPatients([
+      { id: "PT-001", name: "Rahul Sharma", age: 34, gender: "M", bloodGroup: "O+", lastVisit: "2026-10-12", status: "ACTIVE" },
+      { id: "PT-002", name: "Priya Singh", age: 28, gender: "F", bloodGroup: "B+", lastVisit: "2026-09-28", status: "ACTIVE" },
+      { id: "PT-003", name: "Amit Kumar", age: 45, gender: "M", bloodGroup: "A-", lastVisit: "2026-06-15", status: "INACTIVE" },
+    ]);
+    setLoading(false);
   }, []);
 
   if (loading) return <DashboardLoading />;

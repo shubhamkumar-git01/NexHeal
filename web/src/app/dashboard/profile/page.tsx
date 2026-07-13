@@ -16,10 +16,8 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("Personal Details");
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    // Instant fetch
+    setLoading(false);
   }, []);
 
   if (loading) return <DashboardLoading />;

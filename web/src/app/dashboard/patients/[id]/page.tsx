@@ -27,14 +27,12 @@ export default function PatientDetailsPage() {
   const [records, setRecords] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setRecords([
-        { id: "REC-1", type: "Blood Report", date: "Oct 12, 2026", size: "1.2 MB", uploadedBy: "City Lab" },
-        { id: "REC-2", type: "MRI Scan", date: "Sep 28, 2026", size: "14.5 MB", uploadedBy: "Dr. Sharma" },
-      ]);
-      setLoading(false);
-    }, 800);
+    // Instant fetch
+    setRecords([
+      { id: "REC-1", type: "Blood Report", date: "Oct 12, 2026", size: "1.2 MB", uploadedBy: "City Lab" },
+      { id: "REC-2", type: "MRI Scan", date: "Sep 28, 2026", size: "14.5 MB", uploadedBy: "Dr. Sharma" },
+    ]);
+    setLoading(false);
   }, []);
 
   if (loading) return <DashboardLoading />;

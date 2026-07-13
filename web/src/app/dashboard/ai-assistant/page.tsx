@@ -76,37 +76,36 @@ export default function AIAssistantPage() {
     const typingId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, { id: typingId, role: "assistant", content: "", isTyping: true }]);
 
-    setTimeout(() => {
-      let responseText = "I am a mocked AI assistant running through the NexHeal AI Gateway to provide insights on your query: " + text;
-      let requiresReview = false;
-      let confidence = 0.95;
-      
-      if (text.includes("Symptom Checker") || text.includes("SOAP Note Draft")) {
-        requiresReview = true;
-        confidence = 0.75;
-      }
-      
-      if (text.includes("Symptom Checker")) {
-        responseText = "I can help analyze your symptoms. Please list what you are experiencing. Note: I cannot diagnose conditions, but I can suggest urgency levels.";
-      } else if (text.includes("SOAP Note Draft")) {
-        responseText = "**Subjective:** Patient reports mild fever.\n**Objective:** Temp 99.8F.\n**Assessment:** Viral URI suspected.\n**Plan:** Rest and fluids. \n\n*Note: This is an AI-generated draft.*";
-      }
+    // Generate instant response
+    let responseText = "I am a mocked AI assistant running through the NexHeal AI Gateway to provide insights on your query: " + text;
+    let requiresReview = false;
+    let confidence = 0.95;
+    
+    if (text.includes("Symptom Checker") || text.includes("SOAP Note Draft")) {
+      requiresReview = true;
+      confidence = 0.75;
+    }
+    
+    if (text.includes("Symptom Checker")) {
+      responseText = "I can help analyze your symptoms. Please list what you are experiencing. Note: I cannot diagnose conditions, but I can suggest urgency levels.";
+    } else if (text.includes("SOAP Note Draft")) {
+      responseText = "**Subjective:** Patient reports mild fever.\n**Objective:** Temp 99.8F.\n**Assessment:** Viral URI suspected.\n**Plan:** Rest and fluids. \n\n*Note: This is an AI-generated draft.*";
+    }
 
-      setMessages(prev => prev.map(msg => 
-        msg.id === typingId ? { 
-          id: typingId, 
-          role: "assistant", 
-          content: responseText, 
-          isTyping: false,
-          metadata: {
-            confidenceScore: confidence,
-            requiresHumanReview: requiresReview,
-            timestamp: new Date().toLocaleTimeString()
-          }
-        } : msg
-      ));
-      setIsProcessing(false);
-    }, 1500);
+    const assistantMsg: Message = { 
+      id: typingId, 
+      role: "assistant", 
+      content: responseText, 
+      isTyping: false,
+      metadata: {
+        confidenceScore: confidence,
+        requiresHumanReview: requiresReview,
+        timestamp: new Date().toLocaleTimeString()
+      }
+    };
+    
+    setMessages(prev => prev.map(msg => msg.id === typingId ? assistantMsg : msg));
+    setIsProcessing(false);
   };
 
   const copyToClipboard = (text: string) => {
