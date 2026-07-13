@@ -4,6 +4,7 @@ import { protect, requireOwnership, authorize } from "../middlewares/authMiddlew
 
 const router = Router();
 
+router.get("/patient/:patientId/dashboard", protect, EHRController.getDashboard);
 router.get("/patient/:patientId/timeline", protect, requireOwnership, EHRController.getTimeline);
 router.post("/vitals", protect, authorize("DOCTOR", "HOSPITAL_ADMIN", "SUPER_ADMIN"), EHRController.addVitals);
 router.get("/profile/:profileId/summary", protect, EHRController.getSummary);

@@ -31,4 +31,14 @@ export class EHRController {
       res.status(500).json({ success: false, error: err.message });
     }
   }
+
+  static async getDashboard(req: Request, res: Response): Promise<void> {
+    try {
+      const patientId = req.params.patientId;
+      const dashboard = await EHRService.getEHRDashboard(patientId as string);
+      res.json({ success: true, data: dashboard });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
 }

@@ -55,8 +55,40 @@ export class EHRService {
         structuredConditions: true,
         vaccinations: true,
         familyHistory: true,
-        vitals: { orderBy: { recordedAt: 'desc' }, take: 1 }
+        vitals: { orderBy: { recordedAt: 'desc' }, take: 1 },
+        medications: { where: { status: 'ACTIVE' } }
       }
     });
+  }
+
+  /**
+   * Fetches complete EHR dashboard data (Records, Timeline, Overview)
+   */
+  static async getEHRDashboard(patientId: string) {
+    const profile = await prisma.patientProfile.findUnique({
+      where: { userId: patientId }
+    });
+
+    const summary = profile ? await this.getPatientHealthSummary(profile.id) : null;
+    
+    const timeline = await prisma.medicalTimelineEvent.findMany({
+      where: { patientId },
+      orderBy: { date: "desc" },
+      take: 20
+    });
+
+    const records = await prisma.medicalRecord.findMany({
+      where: { patientId },
+      orderBy: { date: "desc" },
+      include: {
+        files: true // Assuming MedicalFile is related
+      }
+    });
+
+    return {
+      summary,
+      timeline,
+      records
+    };
   }
 }

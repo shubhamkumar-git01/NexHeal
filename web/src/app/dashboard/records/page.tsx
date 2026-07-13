@@ -21,20 +21,46 @@ export default function RecordsPage() {
     size: string;
     uploadedBy: string;
   }
+  interface EHRDashboardData {
+    summary: any;
+    timeline: any[];
+    records: MedicalRecord[];
+  }
+
   const [records, setRecords] = useState<MedicalRecord[]>([]);
+  const [dashboardData, setDashboardData] = useState<EHRDashboardData | null>(null);
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setRecords([
-        { id: "REC-1", type: "Blood Report", date: "Oct 12, 2026", size: "1.2 MB", uploadedBy: "City Lab" },
-        { id: "REC-2", type: "MRI Scan", date: "Sep 28, 2026", size: "14.5 MB", uploadedBy: "Dr. Sharma" },
-        { id: "REC-3", type: "Prescription", date: "Sep 15, 2026", size: "450 KB", uploadedBy: "Dr. Smith" },
-        { id: "REC-4", type: "Vaccination", date: "Aug 10, 2026", size: "200 KB", uploadedBy: "City Clinic" },
-        { id: "REC-5", type: "X-ray", date: "Jul 05, 2026", size: "8.1 MB", uploadedBy: "City Lab" },
-      ]);
-      setLoading(false);
-    }, 1000);
+    const fetchDashboard = async () => {
+      try {
+        const { authService } = await import("@/lib/auth");
+        const user = authService.getUser();
+        if (!user || !user.id) return;
+        
+        const { fetchApi } = await import("@/lib/api");
+        const response = await fetchApi(`/ehr/patient/${user.id}/dashboard`);
+        const result = await response.json();
+        
+        if (result.success) {
+          setDashboardData(result.data);
+          // For now, map the records. In real life, fields might differ slightly from the mock
+          if (result.data && result.data.records) {
+             setRecords(result.data.records.map((r: any) => ({
+               id: r.id,
+               type: r.type,
+               date: new Date(r.date).toLocaleDateString(),
+               size: "Unknown", // Add to schema later
+               uploadedBy: "System" // Add doctor relation later
+             })));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch EHR dashboard", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
   }, []);
 
   if (loading) return <DashboardLoading />;
@@ -96,37 +122,57 @@ export default function RecordsPage() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Chronic Diseases</p>
-                    <p className="font-medium text-sm">Hypertension, Type 2 Diabetes</p>
+                    <p className="font-medium text-sm">
+                      {(dashboardData?.summary?.structuredConditions?.length ?? 0) > 0 
+                        ? dashboardData?.summary?.structuredConditions?.map((c: any) => c.diseaseName).join(", ")
+                        : "None reported"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Allergies</p>
-                    <p className="font-medium text-sm text-red-500">Penicillin, Peanuts</p>
+                    <p className="font-medium text-sm text-red-500">
+                      {(dashboardData?.summary?.structuredAllergies?.length ?? 0) > 0
+                        ? dashboardData?.summary?.structuredAllergies?.map((a: any) => a.allergen).join(", ")
+                        : "No known allergies"}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
                 <h3 className="font-semibold mb-4 text-slate-800 dark:text-slate-200">Current Medications</h3>
                 <ul className="space-y-3">
-                  <li className="flex justify-between items-center text-sm border-b pb-2 dark:border-slate-800">
-                    <span className="font-medium text-blue-700 dark:text-blue-400">Metformin 500mg</span>
-                    <span className="text-muted-foreground">1-0-1</span>
-                  </li>
-                  <li className="flex justify-between items-center text-sm border-b pb-2 dark:border-slate-800">
-                    <span className="font-medium text-blue-700 dark:text-blue-400">Lisinopril 10mg</span>
-                    <span className="text-muted-foreground">1-0-0</span>
-                  </li>
+                  {(dashboardData?.summary?.medications?.length ?? 0) > 0 ? (
+                    dashboardData?.summary?.medications?.map((med: any) => (
+                      <li key={med.id} className="flex justify-between items-center text-sm border-b pb-2 dark:border-slate-800">
+                        <span className="font-medium text-blue-700 dark:text-blue-400">{med.medicationName} {med.dosage}</span>
+                        <span className="text-muted-foreground">{med.frequency}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-sm text-muted-foreground">No active medications</li>
+                  )}
                 </ul>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm md:col-span-2">
-                <h3 className="font-semibold mb-4 text-slate-800 dark:text-slate-200">Medical History & Surgeries</h3>
+                <h3 className="font-semibold mb-4 text-slate-800 dark:text-slate-200">Medical History & Vitals</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Past Surgeries</p>
-                    <p className="font-medium text-sm">Appendectomy (2015)</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Recent Vitals</p>
+                    {dashboardData?.summary?.vitals?.[0] ? (
+                       <p className="font-medium text-sm">
+                         BP: {dashboardData.summary.vitals[0].bloodPressure} | HR: {dashboardData.summary.vitals[0].heartRate} bpm
+                       </p>
+                    ) : (
+                       <p className="font-medium text-sm">No recent vitals</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Family History</p>
-                    <p className="font-medium text-sm">Father: Heart Disease</p>
+                    <p className="font-medium text-sm">
+                      {(dashboardData?.summary?.familyHistory?.length ?? 0) > 0 
+                        ? dashboardData?.summary?.familyHistory?.map((h: any) => `${h.relation}: ${h.condition}`).join(" | ")
+                        : "None reported"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -137,26 +183,24 @@ export default function RecordsPage() {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
               <h3 className="font-semibold mb-6 text-slate-800 dark:text-slate-200">Chronological Medical Timeline</h3>
               <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
-                  <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-[#09090b] bg-primary text-white shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-                      <FileArchive className="w-4 h-4" />
-                    </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm">
-                      <span className="text-xs font-bold text-primary">12 Oct 2026</span>
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100 mt-1">General Checkup - Dr. Rahul Sharma</h3>
-                      <p className="text-sm text-slate-500 mt-1">Blood Report uploaded. Prescription updated for Metformin.</p>
-                    </div>
-                  </div>
-                  <div className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-[#09090b] bg-slate-200 dark:bg-slate-800 text-slate-500 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10">
-                      <FileArchive className="w-4 h-4" />
-                    </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm">
-                      <span className="text-xs font-bold text-slate-500">28 Sep 2026</span>
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100 mt-1">MRI Scan Uploaded</h3>
-                      <p className="text-sm text-slate-500 mt-1">File: Brain_MRI_Scan.pdf uploaded by Dr. Sharma.</p>
-                    </div>
-                  </div>
+                  {(dashboardData?.timeline?.length ?? 0) > 0 ? (
+                    dashboardData?.timeline?.map((event: any, idx: number) => (
+                      <div key={event.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                        <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-[#09090b] ${idx === 0 ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'} shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm z-10`}>
+                          <FileArchive className="w-4 h-4" />
+                        </div>
+                        <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm">
+                          <span className={`text-xs font-bold ${idx === 0 ? 'text-primary' : 'text-slate-500'}`}>
+                            {new Date(event.date).toLocaleDateString("en-US", { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <h3 className="font-bold text-slate-900 dark:text-slate-100 mt-1">{event.title}</h3>
+                          <p className="text-sm text-slate-500 mt-1">{event.description || event.eventType}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-muted-foreground p-8">No timeline events recorded yet.</div>
+                  )}
               </div>
             </div>
           )}
