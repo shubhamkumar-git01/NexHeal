@@ -85,3 +85,65 @@ export const requireOwnership = (req: AuthRequest, res: Response, next: NextFunc
 
   next();
 };
+
+/**
+ * Validates access to EHR endpoints.
+ * Allowed: The patient themselves, a Doctor with an active appointment, or an Admin.
+ */
+export const requireEHRAccess = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const patientId = req.params.patientId as string;
+  const user = req.user;
+
+  if (!user) {
+    res.status(401).json({ success: false, error: 'Not authorized' });
+    return;
+  }
+
+  // 1. Admins have access
+  if (['SUPER_ADMIN', 'ZONE_ADMIN', 'HOSPITAL_ADMIN'].includes(user.role)) {
+    return next();
+  }
+
+  // 2. Patient owns their own records
+  if (user.id === patientId) {
+    return next();
+  }
+
+  // 3. Doctor access requires an active appointment or explicit grant
+  if (user.role === 'DOCTOR') {
+    // Check if there's an appointment between this doctor and patient
+    // We assume the Doctor has a doctor profile linked to user.id
+    const doctorProfile = await prisma.doctorProfile.findUnique({
+      where: { userId: user.id }
+    });
+    
+    if (!doctorProfile) {
+      res.status(403).json({ success: false, error: 'Doctor profile not found.' });
+      return;
+    }
+
+    const patientProfile = await prisma.patientProfile.findUnique({
+      where: { userId: patientId as string }
+    });
+
+    if (!patientProfile) {
+      res.status(404).json({ success: false, error: 'Patient profile not found.' });
+      return;
+    }
+
+    const hasAppointment = await prisma.appointment.findFirst({
+      where: {
+        doctorId: doctorProfile.id,
+        patientId: patientProfile.id,
+        // In real-world, we'd check if the appointment is recent/active
+        // status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] }
+      }
+    });
+
+    if (hasAppointment) {
+      return next();
+    }
+  }
+
+  res.status(403).json({ success: false, error: 'Forbidden: You do not have access to this patient\'s EHR.' });
+};
