@@ -46,10 +46,12 @@ export default function AITriagePage() {
     setLoading(true);
 
     try {
-      const res: any = await fetchApi('/ai/triage', { 
+      const response = await fetchApi('/ai/triage', { 
         method: 'POST', 
         body: JSON.stringify({ symptoms: input }) 
       });
+      
+      const res = await response.json();
       
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),

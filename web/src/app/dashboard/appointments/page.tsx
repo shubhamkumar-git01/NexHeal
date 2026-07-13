@@ -34,16 +34,14 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setAppointments([
-        { id: 1, name: isPatient ? "Dr. Rahul Sharma" : "Rahul Sharma", time: "10:30 AM - 11:00 AM", type: "Video Consult", status: "IN_CONSULTATION", color: "blue", date: "Today" },
-        { id: 2, name: isPatient ? "Dr. Priya Singh" : "Priya Singh", time: "11:15 AM - 11:45 AM", type: "Clinic Visit", status: "CHECKED_IN", color: "amber", date: "Today", queuePosition: 2, expectedTime: "11:20 AM" },
-        { id: 3, name: isPatient ? "Dr. Amit Kumar" : "Amit Kumar", time: "01:00 PM - 01:30 PM", type: "Video Consult", status: "CONFIRMED", color: "emerald", date: "Today" },
-        { id: 4, name: "Dr. Smith", time: "10:00 AM - 10:30 AM", type: "Clinic Visit", status: "COMPLETED", color: "slate", date: "Yesterday" },
-      ]);
-      setLoading(false);
-    }, 1000);
+    // Synchronously set data so it doesn't hang
+    setAppointments([
+      { id: 1, name: isPatient ? "Dr. Rahul Sharma" : "Rahul Sharma", time: "10:30 AM - 11:00 AM", type: "Video Consult", status: "IN_CONSULTATION", color: "blue", date: "Today" },
+      { id: 2, name: isPatient ? "Dr. Priya Singh" : "Priya Singh", time: "11:15 AM - 11:45 AM", type: "Clinic Visit", status: "CHECKED_IN", color: "amber", date: "Today", queuePosition: 2, expectedTime: "11:20 AM" },
+      { id: 3, name: isPatient ? "Dr. Amit Kumar" : "Amit Kumar", time: "01:00 PM - 01:30 PM", type: "Video Consult", status: "CONFIRMED", color: "emerald", date: "Today" },
+      { id: 4, name: "Dr. Smith", time: "10:00 AM - 10:30 AM", type: "Clinic Visit", status: "COMPLETED", color: "slate", date: "Yesterday" },
+    ]);
+    setLoading(false);
   }, [isPatient]);
 
   if (loading) return <DashboardLoading />;
