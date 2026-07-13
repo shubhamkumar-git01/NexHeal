@@ -159,9 +159,11 @@ export default function AppointmentsPage() {
                         {isPatient ? (
                           <>
                             {apt.status === "IN_CONSULTATION" && (
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex-1">
-                                <Video className="w-4 h-4 mr-2" /> Join Call
-                              </Button>
+                              <Link href={`/consult/${apt.id}`} className="flex-1">
+                                <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                                  <Video className="w-4 h-4 mr-2" /> Join Call
+                                </Button>
+                              </Link>
                             )}
                             {apt.status === "CONFIRMED" && (
                               <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex-1">
@@ -187,11 +189,13 @@ export default function AppointmentsPage() {
                               </>
                             )}
                             {apt.status === "CHECKED_IN" && (
-                              <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex-1"><Stethoscope className="w-4 h-4 mr-2" /> Start Consult</Button>
+                              <Link href={`/consult/${apt.id}`} className="flex-1">
+                                <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"><Stethoscope className="w-4 h-4 mr-2" /> Start Consult</Button>
+                              </Link>
                             )}
                             {apt.status === "IN_CONSULTATION" && (
-                              <Link href={`/dashboard/patients/PT-001`} className="flex-1">
-                                <Button size="sm" variant="outline" className="w-full border-blue-200 text-blue-700"><FileText className="w-4 h-4 mr-2" /> Open SOAP Note</Button>
+                              <Link href={`/consult/${apt.id}`} className="flex-1">
+                                <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"><Video className="w-4 h-4 mr-2" /> Join Call</Button>
                               </Link>
                             )}
                           </>

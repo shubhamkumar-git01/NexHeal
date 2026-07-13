@@ -34,6 +34,31 @@ export class WebSocketManager {
         Logger.info(`Socket ${socket.id} joined dashboard_${hospitalId}`);
       });
 
+      // WebRTC Signaling for Virtual Clinic
+      socket.on('join-consultation', (consultationId) => {
+        socket.join(`consultation_${consultationId}`);
+        Logger.info(`Socket ${socket.id} joined consultation_${consultationId}`);
+        // Notify others in the room
+        socket.to(`consultation_${consultationId}`).emit('user-joined', socket.id);
+      });
+
+      socket.on('webrtc-offer', (data) => {
+        socket.to(`consultation_${data.consultationId}`).emit('webrtc-offer', data);
+      });
+
+      socket.on('webrtc-answer', (data) => {
+        socket.to(`consultation_${data.consultationId}`).emit('webrtc-answer', data);
+      });
+
+      socket.on('webrtc-ice-candidate', (data) => {
+        socket.to(`consultation_${data.consultationId}`).emit('webrtc-ice-candidate', data);
+      });
+      
+      socket.on('leave-consultation', (consultationId) => {
+        socket.leave(`consultation_${consultationId}`);
+        socket.to(`consultation_${consultationId}`).emit('user-left', socket.id);
+      });
+
       socket.on('disconnect', () => {
         Logger.info(`WebSocket disconnected: ${socket.id}`);
       });
