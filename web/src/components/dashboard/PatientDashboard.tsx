@@ -29,16 +29,17 @@ export function PatientDashboard({ user }: { user: UserProfile | null }) {
     const loadDashboard = async () => {
       try {
         const res = await fetchApi("/api/v1/dashboard/patient");
-        if (res.data) {
+        const payload = await res.json();
+        if (payload.data) {
           setData({
             healthScore: 92, // Calculate from vitals later
-            nextAppointment: res.data.upcomingAppointments?.length > 0 
-              ? new Date(res.data.upcomingAppointments[0].date).toLocaleString() 
+            nextAppointment: payload.data.upcomingAppointments?.length > 0 
+              ? new Date(payload.data.upcomingAppointments[0].date).toLocaleString() 
               : "No upcoming appointments",
-            activeMedicines: res.data.timeline?.filter((e: any) => e.eventType === 'PRESCRIPTION').length || 0,
-            reportsPending: res.data.timeline?.filter((e: any) => e.eventType === 'LAB_REPORT').length || 0,
-            timeline: res.data.timeline || [],
-            recentAppointments: res.data.upcomingAppointments || []
+            activeMedicines: payload.data.timeline?.filter((e: any) => e.eventType === 'PRESCRIPTION').length || 0,
+            reportsPending: payload.data.timeline?.filter((e: any) => e.eventType === 'LAB_REPORT').length || 0,
+            timeline: payload.data.timeline || [],
+            recentAppointments: payload.data.upcomingAppointments || []
           });
         }
       } catch (error) {
