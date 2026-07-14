@@ -71,10 +71,8 @@ export function Header({ navItems }: HeaderProps) {
     <header className="h-16 bg-white dark:bg-[#09090b] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0 transition-colors">
       <div className="flex items-center gap-3">
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-          <SheetTrigger asChild>
-            <button className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
-              <Menu className="w-5 h-5" />
-            </button>
+          <SheetTrigger render={<button className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md" />}>
+            <Menu className="w-5 h-5" />
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 border-r-slate-200 dark:border-r-slate-800">
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
