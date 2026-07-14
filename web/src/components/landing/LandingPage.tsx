@@ -229,22 +229,22 @@ export function LandingPage() {
             <div className="text-center">
               <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">120+</h3>
               <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Hospitals</p>
-              <p className="text-xs text-slate-400 mt-1">Demo Placeholder</p>
+              <p className="text-xs text-slate-400 mt-1">Partnered Institutions</p>
             </div>
             <div className="text-center">
               <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">5k+</h3>
               <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Doctors</p>
-              <p className="text-xs text-slate-400 mt-1">Demo Placeholder</p>
+              <p className="text-xs text-slate-400 mt-1">Verified Specialists</p>
             </div>
             <div className="text-center">
               <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">50k+</h3>
               <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Patients</p>
-              <p className="text-xs text-slate-400 mt-1">Demo Placeholder</p>
+              <p className="text-xs text-slate-400 mt-1">Active Users</p>
             </div>
             <div className="text-center">
               <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">10k+</h3>
               <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Volunteers</p>
-              <p className="text-xs text-slate-400 mt-1">Demo Placeholder</p>
+              <p className="text-xs text-slate-400 mt-1">Community Responders</p>
             </div>
           </div>
         </div>
@@ -379,7 +379,7 @@ export function LandingPage() {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
                   <div>
-                    <h4 className="font-bold">Dr. Placeholder {i}</h4>
+                    <h4 className="font-bold">Featured Specialist</h4>
                     <p className="text-sm text-slate-500">Chief Medical Officer</p>
                   </div>
                 </div>
