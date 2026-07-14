@@ -47,7 +47,8 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const aiResponse = await AIService.chat(messages, userContext);
+    const customApiKey = req.headers['x-gemini-key'] as string;
+    const aiResponse = await AIService.chat(messages, userContext, customApiKey);
     
     res.status(200).json({
       success: true,
@@ -74,7 +75,8 @@ export const triagePatient = async (req: Request, res: Response) => {
       return;
     }
 
-    const aiRecommendation = await AIService.patientTriage(symptoms);
+    const customApiKey = req.headers['x-gemini-key'] as string;
+    const aiRecommendation = await AIService.patientTriage(symptoms, customApiKey);
     
     res.status(200).json({
       success: true,

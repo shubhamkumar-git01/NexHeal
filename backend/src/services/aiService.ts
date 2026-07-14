@@ -38,8 +38,8 @@ export class AIService {
    * If GEMINI_API_KEY is available, it uses the real Google Gemini API.
    * Otherwise, it falls back to a mock response.
    */
-  static async patientTriage(symptoms: string) {
-    const apiKey = process.env.GEMINI_API_KEY;
+  static async patientTriage(symptoms: string, customApiKey?: string) {
+    const apiKey = customApiKey || process.env.GEMINI_API_KEY;
     
     if (!apiKey) {
       console.log("[AIService] No GEMINI_API_KEY found. Using mock triage response.");
@@ -110,8 +110,8 @@ Provide your response ONLY as a JSON object with the following keys, no markdown
   /**
    * Real AI-powered Medical Chatbot for NexHeal Copilot
    */
-  static async chat(messages: {role: string, content: string}[], userContext: any) {
-    const apiKey = process.env.GEMINI_API_KEY;
+  static async chat(messages: {role: string, content: string}[], userContext: any, customApiKey?: string) {
+    const apiKey = customApiKey || process.env.GEMINI_API_KEY;
     
     // Convert generic chat messages to Gemini's format
     const contents = messages.map(m => ({

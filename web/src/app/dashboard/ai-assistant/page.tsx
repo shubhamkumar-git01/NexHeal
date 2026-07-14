@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, Send, User, AlertTriangle, Sparkles, Copy, RotateCcw, Trash2, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Bot, Send, User, AlertTriangle, Sparkles, Copy, RotateCcw, Trash2, ShieldAlert, CheckCircle2, Settings, X, Key } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchApi } from "@/lib/api";
 
@@ -33,6 +33,9 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const patientTemplates = [
@@ -61,29 +64,46 @@ export default function AIAssistantPage() {
   if (isAdmin) templates = adminTemplates;
 
   useEffect(() => {
+    setIsMounted(true);
+    const savedMessages = localStorage.getItem("nexheal_chat_history");
+    if (savedMessages) {
+      try { setMessages(JSON.parse(savedMessages)); } catch (e) {}
+    }
+    const savedKey = localStorage.getItem("nexheal_gemini_key");
+    if (savedKey) setCustomApiKey(savedKey);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("nexheal_chat_history", JSON.stringify(messages));
+    }
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isMounted]);
 
   const handleSend = async (text: string = inputValue) => {
     if (!text.trim() || isProcessing) return;
 
-    const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: text };
+    const newUserMsg: Message = { id: crypto.randomUUID(), role: "user", content: text };
     const newMessages = [...messages, newUserMsg];
     setMessages(newMessages);
     setInputValue("");
     setIsProcessing(true);
 
-    const typingId = (Date.now() + 1).toString();
+    const typingId = crypto.randomUUID();
     setMessages(prev => [...prev, { id: typingId, role: "assistant", content: "", isTyping: true }]);
 
     try {
       // Map messages for the backend API
       const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
       
+      const headers: any = {};
+      if (customApiKey) headers['X-Gemini-Key'] = customApiKey;
+
       const res = await fetchApi('/api/v1/ai/chat', {
         method: 'POST',
+        headers,
         body: JSON.stringify({ messages: apiMessages })
       });
       const payload = await res.json();
@@ -138,6 +158,8 @@ export default function AIAssistantPage() {
     }
   };
 
+  if (!isMounted) return <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto animate-pulse bg-slate-100 dark:bg-slate-900 rounded-xl" />;
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto">
       <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg p-3 flex items-start gap-3 mb-4 shrink-0">
@@ -158,12 +180,45 @@ export default function AIAssistantPage() {
               {isAdmin ? "Enterprise AI Gateway" : isPatient ? "Your personal health assistant" : "Clinical intelligence assistant"}
             </CardDescription>
           </div>
-          {messages.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={clearChat} className="text-muted-foreground">
-              <Trash2 className="w-4 h-4 mr-2" /> Clear Chat
+          <div className="flex items-center gap-1 md:gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} className="text-muted-foreground px-2 md:px-3">
+              <Settings className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Settings</span>
             </Button>
-          )}
+            {messages.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearChat} className="text-muted-foreground px-2 md:px-3">
+                <Trash2 className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Clear</span>
+              </Button>
+            )}
+          </div>
         </CardHeader>
+
+        {showSettings && (
+          <div className="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-800 p-4 shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Key className="w-4 h-4 text-primary" /> API Configuration
+              </h4>
+              <Button variant="ghost" size="icon" className="w-6 h-6 rounded-full" onClick={() => setShowSettings(false)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              To get real-time clinical predictions, enter your free Google Gemini API Key. It will be stored securely in your browser.
+            </p>
+            <div className="flex gap-2">
+              <Input 
+                type="password" 
+                placeholder="Enter Gemini API Key (AIza...)" 
+                value={customApiKey}
+                onChange={(e) => {
+                  setCustomApiKey(e.target.value);
+                  localStorage.setItem("nexheal_gemini_key", e.target.value);
+                }}
+                className="text-sm bg-white dark:bg-black"
+              />
+            </div>
+          </div>
+        )}
 
         <CardContent className="flex-1 p-0 overflow-hidden flex flex-col relative bg-slate-50/50 dark:bg-slate-900/20">
           <ScrollArea className="flex-1 p-4 md:p-6" ref={scrollRef}>
