@@ -7,22 +7,6 @@ const router = Router();
 router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
 
-// Debug endpoint to run migrations on Render and see the output
-router.get("/fix-db", async (req, res) => {
-  const { execSync } = require('child_process');
-  try {
-    let dbUrl = process.env.DATABASE_URL || "";
-    if (dbUrl.includes(':6543')) {
-      dbUrl = dbUrl.replace(':6543', ':5432');
-    }
-    const env = { ...process.env, DATABASE_URL: dbUrl, DIRECT_URL: dbUrl };
-    const stdout = execSync('npx prisma db push --accept-data-loss', { env, encoding: 'utf-8' });
-    res.json({ success: true, stdout });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message, stdout: error.stdout?.toString(), stderr: error.stderr?.toString() });
-  }
-});
-
 // Protected routes
 router.post("/refresh", protect, AuthController.refresh);
 router.post("/logout", protect, AuthController.logout);

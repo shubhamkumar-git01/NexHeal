@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bot, Send, User, AlertTriangle, Sparkles, Copy, RotateCcw, Trash2, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchApi } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -65,47 +66,60 @@ export default function AIAssistantPage() {
     }
   }, [messages]);
 
-  const handleSend = (text: string = inputValue) => {
+  const handleSend = async (text: string = inputValue) => {
     if (!text.trim() || isProcessing) return;
 
     const newUserMsg: Message = { id: Date.now().toString(), role: "user", content: text };
-    setMessages(prev => [...prev, newUserMsg]);
+    const newMessages = [...messages, newUserMsg];
+    setMessages(newMessages);
     setInputValue("");
     setIsProcessing(true);
 
     const typingId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, { id: typingId, role: "assistant", content: "", isTyping: true }]);
 
-    // Generate instant response
-    let responseText = "I am a mocked AI assistant running through the NexHeal AI Gateway to provide insights on your query: " + text;
-    let requiresReview = false;
-    let confidence = 0.95;
-    
-    if (text.includes("Symptom Checker") || text.includes("SOAP Note Draft")) {
-      requiresReview = true;
-      confidence = 0.75;
+    try {
+      // Map messages for the backend API
+      const apiMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
+      
+      const res = await fetchApi('/api/v1/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({ messages: apiMessages })
+      });
+      const payload = await res.json();
+      
+      const aiResponse = payload.data?.response;
+      
+      const assistantMsg: Message = { 
+        id: typingId, 
+        role: "assistant", 
+        content: aiResponse?.text || "Sorry, I couldn't process your request.", 
+        isTyping: false,
+        metadata: {
+          confidenceScore: aiResponse?.confidence || 0.9,
+          requiresHumanReview: aiResponse?.confidence < 0.8,
+          timestamp: new Date().toLocaleTimeString()
+        }
+      };
+      
+      setMessages(prev => prev.map(msg => msg.id === typingId ? assistantMsg : msg));
+    } catch (error) {
+      console.error("AI Chat Error:", error);
+      const errorMsg: Message = { 
+        id: typingId, 
+        role: "assistant", 
+        content: "I am experiencing technical difficulties reaching the AI servers. Please try again later.", 
+        isTyping: false,
+        metadata: {
+          confidenceScore: 0,
+          requiresHumanReview: true,
+          timestamp: new Date().toLocaleTimeString()
+        }
+      };
+      setMessages(prev => prev.map(msg => msg.id === typingId ? errorMsg : msg));
+    } finally {
+      setIsProcessing(false);
     }
-    
-    if (text.includes("Symptom Checker")) {
-      responseText = "I can help analyze your symptoms. Please list what you are experiencing. Note: I cannot diagnose conditions, but I can suggest urgency levels.";
-    } else if (text.includes("SOAP Note Draft")) {
-      responseText = "**Subjective:** Patient reports mild fever.\n**Objective:** Temp 99.8F.\n**Assessment:** Viral URI suspected.\n**Plan:** Rest and fluids. \n\n*Note: This is an AI-generated draft.*";
-    }
-
-    const assistantMsg: Message = { 
-      id: typingId, 
-      role: "assistant", 
-      content: responseText, 
-      isTyping: false,
-      metadata: {
-        confidenceScore: confidence,
-        requiresHumanReview: requiresReview,
-        timestamp: new Date().toLocaleTimeString()
-      }
-    };
-    
-    setMessages(prev => prev.map(msg => msg.id === typingId ? assistantMsg : msg));
-    setIsProcessing(false);
   };
 
   const copyToClipboard = (text: string) => {

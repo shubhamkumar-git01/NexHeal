@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { getApiUrl } from "@/lib/api";
 
 interface StatsData {
   hospitals: number;
@@ -34,9 +35,11 @@ export function LiveStatsCounter() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fallback production URL if NEXT_PUBLIC_API_URL is missing
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://nexheal-backend.onrender.com/api/v1";
-        const res = await fetch(`${apiUrl}/public/stats`);
+        const apiUrl = getApiUrl();
+        // The API returns the stats at /api/v1/public/stats
+        const cleanBase = apiUrl.endsWith('/api/v1') ? apiUrl.replace('/api/v1', '') : apiUrl.endsWith('/api') ? apiUrl.replace('/api', '') : apiUrl;
+        
+        const res = await fetch(`${cleanBase}/api/v1/public/stats`);
         if (!res.ok) throw new Error("Failed to fetch stats");
         const json = await res.json();
         if (json.success) {

@@ -332,19 +332,19 @@ export function LandingPage() {
           <div>
             <h4 className="font-bold mb-4">Company</h4>
             <ul className="space-y-3 text-sm text-slate-500">
-              <li><Link href="#" className="hover:text-blue-600">About Us</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Careers</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Contact</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Partners</Link></li>
+              <li><Link href="/about" className="hover:text-blue-600">About Us</Link></li>
+              <li><Link href="/careers" className="hover:text-blue-600">Careers</Link></li>
+              <li><a href="mailto:support@nexheal.com" className="hover:text-blue-600">Contact</a></li>
+              <li><Link href="/partners" className="hover:text-blue-600">Partners</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold mb-4">Legal</h4>
-            <ul className="space-y-3 text-sm text-slate-500">
-              <li><Link href="#" className="hover:text-blue-600">Privacy Policy</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Terms of Service</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">Cookie Policy</Link></li>
-              <li><Link href="#" className="hover:text-blue-600">HIPAA Compliance</Link></li>
+            <h4 className="font-bold mb-4 text-slate-800 dark:text-slate-200">Legal</h4>
+            <ul className="space-y-3 text-sm text-slate-500 dark:text-slate-400">
+              <li><Link href="/privacy" className="hover:text-blue-600">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="hover:text-blue-600">Terms of Service</Link></li>
+              <li><Link href="/cookies" className="hover:text-blue-600">Cookie Policy</Link></li>
+              <li><Link href="/hipaa" className="hover:text-blue-600">HIPAA Compliance</Link></li>
             </ul>
           </div>
         </div>

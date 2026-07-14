@@ -1,14 +1,14 @@
-import express from 'express';
-import { generatePrescription, triagePatient } from '../controllers/aiController';
+import { Router } from 'express';
+import { generatePrescription, triagePatient, chat } from '../controllers/aiController';
 import { protect } from '../middlewares/authMiddleware';
 
-const router = express.Router();
+const router = Router();
 
-// Using protect middleware to ensure only logged in doctors can access AI
-// Temporarily removed protect for easy local testing without full auth headers
-router.post('/generate-prescription', generatePrescription);
+// Secure AI Endpoints
+router.post('/generate-prescription', protect, generatePrescription);
+router.post('/chat', protect, chat);
 
-// Triage is available for patients to self-diagnose (Public route)
+// Public AI Endpoints
 router.post('/triage', triagePatient);
 
 export default router;

@@ -111,30 +111,10 @@ export const requireEHRAccess = async (req: AuthRequest, res: Response, next: Ne
 
   // 3. Doctor access requires an active appointment or explicit grant
   if (user.role === 'DOCTOR') {
-    // Check if there's an appointment between this doctor and patient
-    // We assume the Doctor has a doctor profile linked to user.id
-    const doctorProfile = await prisma.doctorProfile.findUnique({
-      where: { userId: user.id }
-    });
-    
-    if (!doctorProfile) {
-      res.status(403).json({ success: false, error: 'Doctor profile not found.' });
-      return;
-    }
-
-    const patientProfile = await prisma.patientProfile.findUnique({
-      where: { userId: patientId as string }
-    });
-
-    if (!patientProfile) {
-      res.status(404).json({ success: false, error: 'Patient profile not found.' });
-      return;
-    }
-
     const hasAppointment = await prisma.appointment.findFirst({
       where: {
-        doctorId: doctorProfile.id,
-        patientId: patientProfile.id,
+        doctorId: user.id,
+        patientId: patientId as string,
         // In real-world, we'd check if the appointment is recent/active
         // status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] }
       }

@@ -20,6 +20,7 @@ import ehrRoutes from './routes/ehrRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import publicRoutes from './routes/publicRoutes';
+import emergencyRoutes from './routes/emergencyRoutes';
 
 dotenv.config();
 
@@ -98,6 +99,7 @@ apiRouter.use('/ehr', ehrRoutes);
 apiRouter.use('/appointments', appointmentRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/public', publicRoutes);
+apiRouter.use('/emergency', emergencyRoutes);
 
 app.use('/api/v1', apiRouter);
 

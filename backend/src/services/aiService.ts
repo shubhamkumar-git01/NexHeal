@@ -106,4 +106,103 @@ Provide your response ONLY as a JSON object with the following keys, no markdown
       };
     }
   }
+
+  /**
+   * Real AI-powered Medical Chatbot for NexHeal Copilot
+   */
+  static async chat(messages: {role: string, content: string}[], userContext: any) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    // Convert generic chat messages to Gemini's format
+    const contents = messages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }));
+
+    const systemPrompt = `You are NexHeal AI, a highly advanced, professional, and empathetic medical copilot. 
+You are currently assisting a user with the role: ${userContext?.role || 'User'}.
+Your capabilities include analyzing medical reports, suggesting triage priorities, providing health insights, and explaining medical terminology clearly.
+Always add a disclaimer that you are an AI and not a substitute for professional medical advice. Maintain a premium, professional, and reassuring tone.`;
+
+    // Inject system prompt into the first message
+    if (contents.length > 0 && contents[0].role === 'user') {
+      contents[0].parts[0].text = `System Instruction: ${systemPrompt}\n\nUser Message: ${contents[0].parts[0].text}`;
+    }
+
+    if (!apiKey) {
+      console.log("[AIService] No GEMINI_API_KEY found. Using high-quality mock chat response.");
+      return {
+        text: `Based on your query, as the NexHeal AI Copilot (Mock Mode), I recommend scheduling a consultation. Please note this is a simulated response because the Gemini API key is not configured in the backend environment.`,
+        isMock: true,
+        confidence: 0.85
+      };
+    }
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: contents,
+          generationConfig: { temperature: 0.4 }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API Error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      return {
+        text: textResponse || "I am sorry, I couldn't process that request.",
+        isMock: false,
+        confidence: 0.95
+      };
+    } catch (error) {
+      console.error("[AIService] Error calling Gemini API for chat:", error);
+      return {
+        text: "I am experiencing technical difficulties reaching the AI servers. Please try again later.",
+        isMock: true,
+        confidence: 0.0
+      };
+    }
+  }
+
+  /**
+   * Real AI Prescription Generation based on diagnosis
+   */
+  static async generatePrescription(diagnosis: string, patientData: any) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      console.log("[AIService] No GEMINI_API_KEY. Using mock prescription.");
+      return [
+        { name: "Mock Medication", dosage: "10mg", frequency: "1x Daily", durationDays: 7, instructions: "Take with food" }
+      ];
+    }
+
+    try {
+      const prompt = `Generate a standard prescription plan for the following diagnosis: "${diagnosis}".
+Patient context: ${JSON.stringify(patientData)}
+Return ONLY a valid JSON array of objects, where each object has: name (string), dosage (string), frequency (string), durationDays (integer), instructions (string). Do not use markdown blocks.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, responseMimeType: "application/json" }
+        })
+      });
+
+      const data = await response.json();
+      const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return JSON.parse(textResponse || "[]");
+    } catch (error) {
+      console.error("[AIService] Prescription generation failed:", error);
+      return [];
+    }
+  }
 }

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 
+import { AIService } from '../services/aiService';
+
 // @desc    Generate AI Prescription based on symptoms
 // @route   POST /api/ai/generate-prescription
 // @access  Private
@@ -12,44 +14,15 @@ export const generatePrescription = async (req: Request, res: Response) => {
       throw new Error('Please provide patient name and symptoms');
     }
 
-    // Simulate AI processing delay for realistic UX (1.5 seconds)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // Mock AI Logic based on symptoms
-    let medicines = [];
-    let diagnosis = "General Viral Infection";
-    let advice = "Rest and drink plenty of fluids.";
-
-    const s = symptoms.toLowerCase();
-    if (s.includes("fever") || s.includes("headache")) {
-      medicines.push({ name: "Paracetamol 500mg", dosage: "1 tablet", frequency: "Twice a day after meals", duration: "3 days" });
-      diagnosis = "Viral Fever";
-    }
-    if (s.includes("cough") || s.includes("throat")) {
-      medicines.push({ name: "Azithromycin 250mg", dosage: "1 tablet", frequency: "Once a day after dinner", duration: "5 days" });
-      medicines.push({ name: "Cough Syrup (Benadryl)", dosage: "10ml", frequency: "Three times a day", duration: "5 days" });
-      diagnosis = "Upper Respiratory Tract Infection";
-      advice += " Avoid cold water and spicy food.";
-    }
-    if (s.includes("stomach") || s.includes("pain") || s.includes("acidity")) {
-      medicines.push({ name: "Pantoprazole 40mg", dosage: "1 tablet", frequency: "Once a day before breakfast", duration: "7 days" });
-      diagnosis = "Gastritis / Acid Reflux";
-      advice = "Avoid oily and spicy foods. Eat small frequent meals.";
-    }
-
-    // Default if nothing matches perfectly
-    if (medicines.length === 0) {
-      medicines.push({ name: "Multivitamin Supplement", dosage: "1 tablet", frequency: "Once a day after lunch", duration: "10 days" });
-      diagnosis = "General Fatigue / Unknown";
-      advice = "Please monitor symptoms and visit clinic if it worsens.";
-    }
+    const diagnosis = `Patient: ${patientName}, Age: ${age}, Symptoms: ${symptoms}`;
+    const medicines = await AIService.generatePrescription(diagnosis, { age, symptoms });
 
     const aiResponse = {
       patientName,
       age: age || "Not specified",
-      diagnosis,
+      diagnosis: "AI Generated Diagnosis",
       medicines,
-      advice,
+      advice: "Please consult the doctor before taking any medication.",
       generatedAt: new Date().toISOString(),
       disclaimer: "This is an AI-generated draft. Please review before prescribing."
     };
@@ -60,7 +33,31 @@ export const generatePrescription = async (req: Request, res: Response) => {
   }
 };
 
-import { AIService } from '../services/aiService';
+// @desc    AI Copilot Chat Endpoint
+// @route   POST /api/ai/chat
+// @access  Private
+export const chat = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { messages } = req.body;
+    // req.user is populated by authMiddleware (protect)
+    const userContext = (req as any).user;
+
+    if (!messages || !Array.isArray(messages)) {
+      res.status(400).json({ success: false, error: 'Messages array is required' });
+      return;
+    }
+
+    const aiResponse = await AIService.chat(messages, userContext);
+    
+    res.status(200).json({
+      success: true,
+      response: aiResponse
+    });
+  } catch (error: any) {
+    console.error("[AIController] Chat Error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 
 // @desc    Triage patient symptoms using Gemini AI
 // @route   POST /api/ai/triage

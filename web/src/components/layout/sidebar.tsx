@@ -16,14 +16,15 @@ interface NavItem {
 
 interface SidebarProps {
   navItems: NavItem[];
+  isMobile?: boolean;
 }
 
-export function Sidebar({ navItems }: SidebarProps) {
+export function Sidebar({ navItems, isMobile = false }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth(false);
 
   return (
-    <aside className="w-64 bg-white dark:bg-[#09090b] border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col transition-colors">
+    <aside className={`${isMobile ? 'w-full flex' : 'w-64 hidden md:flex'} bg-white dark:bg-[#09090b] border-r border-slate-200 dark:border-slate-800 flex-col transition-colors h-full`}>
       <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <Image src="/logo.jpg" alt="NexHeal Logo" width={28} height={28} className="rounded-md mr-3 object-cover shadow-sm" priority />
         <h1 className="text-xl font-extrabold text-blue-700 dark:text-blue-500 tracking-tight">NexHeal</h1>

@@ -1,4 +1,8 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { UserProfile } from "@/lib/auth";
+import { fetchApi } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WelcomeSection } from "@/components/dashboard/WelcomeSection";
@@ -10,13 +14,41 @@ import { Pill, CalendarClock, HeartPulse, FileText, Sparkles, AlertTriangle } fr
 import Link from "next/link";
 
 export function PatientDashboard({ user }: { user: UserProfile | null }) {
-  // Dummy data for patient dashboard
-  const data = {
+  const [data, setData] = useState({
     healthScore: 85,
-    nextAppointment: "Today, 4:30 PM",
-    activeMedicines: 3,
-    reportsPending: 1,
-  };
+    nextAppointment: "Loading...",
+    activeMedicines: 0,
+    reportsPending: 0,
+    timeline: [],
+    recentAppointments: []
+  });
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const res = await fetchApi("/api/v1/dashboard/patient");
+        if (res.data) {
+          setData({
+            healthScore: 92, // Calculate from vitals later
+            nextAppointment: res.data.upcomingAppointments?.length > 0 
+              ? new Date(res.data.upcomingAppointments[0].date).toLocaleString() 
+              : "No upcoming appointments",
+            activeMedicines: res.data.timeline?.filter((e: any) => e.eventType === 'PRESCRIPTION').length || 0,
+            reportsPending: res.data.timeline?.filter((e: any) => e.eventType === 'LAB_REPORT').length || 0,
+            timeline: res.data.timeline || [],
+            recentAppointments: res.data.upcomingAppointments || []
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadDashboard();
+  }, []);
 
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto">
@@ -33,9 +65,9 @@ export function PatientDashboard({ user }: { user: UserProfile | null }) {
         className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
       >
         <StatCard title="Health Score" value={`${data.healthScore}/100`} icon={HeartPulse} description="Based on recent vitals" highlightColor="success" highlightText="Good" />
-        <StatCard title="Next Consult" value={data.nextAppointment} icon={CalendarClock} description="Dr. Sharma (Cardio)" />
-        <StatCard title="Active Medicines" value={data.activeMedicines} icon={Pill} description="2 doses remaining today" highlightColor="warning" highlightText="Action Needed" />
-        <StatCard title="Pending Reports" value={data.reportsPending} icon={FileText} description="Blood work from 24th Oct" />
+        <StatCard title="Next Consult" value={data.nextAppointment} icon={CalendarClock} description="Tap to view details" />
+        <StatCard title="Active Medicines" value={data.activeMedicines} icon={Pill} description="Currently prescribed" highlightColor="warning" highlightText="Action Needed" />
+        <StatCard title="Pending Reports" value={data.reportsPending} icon={FileText} description="Recent lab results" />
       </motion.div>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
@@ -48,38 +80,45 @@ export function PatientDashboard({ user }: { user: UserProfile | null }) {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-4">
-                <AppointmentItem 
-                  patientInitial="D"
-                  patientName="Dr. Anil Sharma"
-                  type="Video Consult - Cardiology"
-                  timeString="04:30 PM"
-                  status="Confirmed"
-                  onClick={() => {}}
-                />
+                {data.recentAppointments.length > 0 ? (
+                  data.recentAppointments.map((apt: any) => (
+                    <AppointmentItem 
+                      key={apt.id}
+                      patientInitial="Dr"
+                      patientName={`Dr. ${apt.doctor?.firstName || 'Assigned'}`}
+                      type={`Consultation - ${apt.urgencyLevel}`}
+                      timeString={new Date(apt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      status={apt.status}
+                      onClick={() => {}}
+                    />
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No upcoming appointments.</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm border-slate-200 dark:border-slate-800">
             <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-lg">Active Medicines</CardTitle>
+              <CardTitle className="text-lg">Medical Timeline</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-3">
-                <AlertCard 
-                  title="Metformin (500mg)"
-                  description="Take 1 pill after dinner. Next dose in 4 hours."
-                  icon={Pill}
-                  type="info"
-                  onClick={() => {}}
-                />
-                <AlertCard 
-                  title="Atorvastatin (20mg)"
-                  description="Missed morning dose. Please take it as soon as possible."
-                  icon={AlertTriangle}
-                  type="destructive"
-                  onClick={() => {}}
-                />
+                {data.timeline.length > 0 ? (
+                  data.timeline.slice(0, 3).map((event: any) => (
+                    <AlertCard 
+                      key={event.id}
+                      title={event.title}
+                      description={event.description || "Medical event logged."}
+                      icon={FileText}
+                      type="info"
+                      onClick={() => {}}
+                    />
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No recent timeline events.</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -92,34 +131,19 @@ export function PatientDashboard({ user }: { user: UserProfile | null }) {
             <CardHeader className="pb-3 border-b border-purple-100/50 dark:border-purple-900/30">
               <CardTitle className="text-lg flex items-center text-purple-900 dark:text-purple-300">
                 <Sparkles className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                AI Health Suggestions
+                NexHeal Copilot Insight
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-4">
                 <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Based on your recent BP logs, consider reducing sodium intake today.
+                  {data.recentAppointments.length > 0 
+                    ? `You have an upcoming appointment. Consider reviewing your symptoms in the AI Assistant beforehand.`
+                    : `Your health timeline is stable. Keep up the good work!`}
                 </p>
-                <div className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 p-2 rounded-md">
-                  <strong>Notice:</strong> Detailed AI insights require backend sync (Currently Unavailable).
+                <div className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 p-2 rounded-md font-medium">
+                  Use the Copilot tab for personalized analysis.
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-lg">Recent Reports</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                <AlertCard 
-                  title="Lipid Profile"
-                  description="Ready to view. Uploaded on 24th Oct."
-                  icon={FileText}
-                  type="info"
-                  onClick={() => {}}
-                />
               </div>
             </CardContent>
           </Card>

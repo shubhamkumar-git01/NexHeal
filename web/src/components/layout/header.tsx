@@ -11,10 +11,13 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Bell, Siren, Check, Info } from "lucide-react";
+import { Bell, Siren, Check, Info, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Sidebar } from "@/components/layout/sidebar";
+
 interface HeaderProps {
-  navItems: { name: string; href: string }[];
+  navItems: { name: string; href: string, icon: any, isAlert?: boolean }[];
 }
 
 export function Header({ navItems }: HeaderProps) {
@@ -33,6 +36,12 @@ export function Header({ navItems }: HeaderProps) {
   }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Close sheet on route change
+  useEffect(() => {
+    setSheetOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     // Simulate API fetch
@@ -59,10 +68,26 @@ export function Header({ navItems }: HeaderProps) {
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-[#09090b] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 transition-colors">
-      <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h2>
+    <header className="h-16 bg-white dark:bg-[#09090b] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 shrink-0 transition-colors">
+      <div className="flex items-center gap-3">
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetTrigger asChild>
+            <button className="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md">
+              <Menu className="w-5 h-5" />
+            </button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64 border-r-slate-200 dark:border-r-slate-800">
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            {/* We reuse the Sidebar but force it to display flex instead of hidden md:flex */}
+            <div className="flex h-full w-full flex-col bg-white dark:bg-[#09090b]">
+              <Sidebar navItems={navItems} isMobile />
+            </div>
+          </SheetContent>
+        </Sheet>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 hidden sm:block">{title}</h2>
+      </div>
       
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2 sm:space-x-3">
         <ThemeToggle />
         
         <DropdownMenu>
