@@ -11,6 +11,7 @@ import {
   Stethoscope, Users, Building2, CalendarCheck, FileText, Bot, 
   Phone, Mail, CheckCircle2, ChevronRight
 } from "lucide-react";
+import { LiveStatsCounter } from "./LiveStatsCounter";
 
 export function LandingPage() {
   const fadeIn = {
@@ -164,9 +165,9 @@ export function LandingPage() {
 
           {/* Floating Element 1: AI Copilot */}
           <motion.div 
-            animate={{ y: [0, -15, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -left-10 top-[20%] bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-20 w-64 backdrop-blur-xl bg-opacity-90 dark:bg-opacity-90"
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -left-10 top-[20%] bg-white/90 dark:bg-slate-900/90 p-4 rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-800/50 z-20 w-64 backdrop-blur-xl"
           >
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
@@ -184,9 +185,9 @@ export function LandingPage() {
 
           {/* Floating Element 2: Emergency Alert */}
           <motion.div 
-            animate={{ y: [0, 20, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute -right-8 bottom-[15%] bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-2xl border border-red-100 dark:border-red-900/30 z-20 backdrop-blur-xl bg-opacity-90 dark:bg-opacity-90"
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute -right-8 bottom-[15%] bg-white/90 dark:bg-slate-900/90 p-4 rounded-2xl shadow-xl border border-red-100 dark:border-red-900/30 z-20 backdrop-blur-xl"
           >
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -204,9 +205,9 @@ export function LandingPage() {
 
           {/* Floating Element 3: Doctor Appointment */}
           <motion.div 
-            animate={{ y: [0, 10, 0], x: [0, -10, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute right-4 top-[5%] bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 z-0 backdrop-blur-xl bg-opacity-80"
+            animate={{ y: [0, -5, 0], x: [0, -5, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute right-4 top-[5%] bg-white/90 dark:bg-slate-900/90 p-3 rounded-2xl shadow-lg border border-slate-200/50 dark:border-slate-800/50 z-0 backdrop-blur-xl"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600">
@@ -223,30 +224,10 @@ export function LandingPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
+      <section className="py-16 bg-white dark:bg-[#09090b] border-y border-slate-200/50 dark:border-slate-800/50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 to-transparent dark:from-slate-900/20 dark:to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">120+</h3>
-              <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Hospitals</p>
-              <p className="text-xs text-slate-400 mt-1">Partnered Institutions</p>
-            </div>
-            <div className="text-center">
-              <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">5k+</h3>
-              <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Doctors</p>
-              <p className="text-xs text-slate-400 mt-1">Verified Specialists</p>
-            </div>
-            <div className="text-center">
-              <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">50k+</h3>
-              <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Patients</p>
-              <p className="text-xs text-slate-400 mt-1">Active Users</p>
-            </div>
-            <div className="text-center">
-              <h3 className="text-4xl font-extrabold text-blue-600 dark:text-blue-400">10k+</h3>
-              <p className="text-sm font-medium text-slate-500 mt-2 uppercase tracking-wider">Volunteers</p>
-              <p className="text-xs text-slate-400 mt-1">Community Responders</p>
-            </div>
-          </div>
+          <LiveStatsCounter />
         </div>
       </section>
 
@@ -368,22 +349,50 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 md:px-12 text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-16">Trusted by Healthcare Professionals</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            {[1,2,3].map((i) => (
-              <div key={i} className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 text-left">
+            {[
+              {
+                text: "NexHeal has transformed how our clinic operates. The AI Copilot saves me 2 hours a day on drafting notes and reviewing patient history.",
+                name: "Dr. Sarah Jenkins",
+                role: "Chief Medical Officer",
+                rating: "★★★★★",
+              },
+              {
+                text: "The emergency SOS feature is a game-changer. We've reduced our ambulance dispatch times by 40% thanks to the integrated volunteer network.",
+                name: "Dr. Rajiv Sharma",
+                role: "ER Director",
+                rating: "★★★★★",
+              },
+              {
+                text: "As a patient, having all my family's medical records and prescriptions in one secure place makes healthcare finally feel accessible and easy.",
+                name: "Emily Davis",
+                role: "Patient",
+                rating: "★★★★★",
+              }
+            ].map((testimonial, i) => (
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200/50 dark:border-slate-800/50 text-left group"
+              >
                 <div className="flex text-amber-400 mb-4">
-                  {"★★★★★"}
+                  {testimonial.rating}
                 </div>
-                <p className="text-slate-700 dark:text-slate-300 italic mb-6">
-                  "NexHeal has transformed how our clinic operates. The AI Copilot saves me 2 hours a day on drafting notes."
+                <p className="text-slate-700 dark:text-slate-300 italic mb-6 leading-relaxed">
+                  "{testimonial.text}"
                 </p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                <div className="flex items-center gap-4 mt-auto">
+                  <div className="w-12 h-12 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 rounded-full flex items-center justify-center font-bold text-slate-500 dark:text-slate-400">
+                    {testimonial.name.charAt(0)}
+                  </div>
                   <div>
-                    <h4 className="font-bold">Featured Specialist</h4>
-                    <p className="text-sm text-slate-500">Chief Medical Officer</p>
+                    <h4 className="font-bold text-slate-900 dark:text-slate-100">{testimonial.name}</h4>
+                    <p className="text-sm text-slate-500">{testimonial.role}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

@@ -19,6 +19,7 @@ import dashboardRoutes from './routes/dashboardRoutes';
 import ehrRoutes from './routes/ehrRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
+import publicRoutes from './routes/publicRoutes';
 
 dotenv.config();
 
@@ -96,6 +97,7 @@ apiRouter.use('/dashboard', dashboardRoutes);
 apiRouter.use('/ehr', ehrRoutes);
 apiRouter.use('/appointments', appointmentRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
+apiRouter.use('/public', publicRoutes);
 
 app.use('/api/v1', apiRouter);
 
