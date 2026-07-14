@@ -51,7 +51,10 @@ export const chat = async (req: Request, res: Response): Promise<void> => {
     
     res.status(200).json({
       success: true,
-      response: aiResponse
+      response: aiResponse,
+      data: {
+        response: aiResponse
+      }
     });
   } catch (error: any) {
     console.error("[AIController] Chat Error:", error);
