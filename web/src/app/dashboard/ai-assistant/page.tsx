@@ -88,7 +88,7 @@ export default function AIAssistantPage() {
       });
       const payload = await res.json();
       
-      const aiResponse = payload.data?.response;
+      const aiResponse = payload.response;
       
       const assistantMsg: Message = { 
         id: typingId, 
